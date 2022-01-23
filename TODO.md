@@ -1,0 +1,18 @@
+## TODO:
+- [x] [API v1 done](https://github.com/elh/bitemporal/blob/main/db.go). [In memory implementation](https://github.com/elh/bitemporal/blob/main/memory.go)
+    - [x] Find
+    - [x] List
+    - [x] Put
+    - [x] Delete
+- [x] [XTDB, Robinhood example tests pass](https://github.com/elh/bitemporal/blob/main/memory_examples_test.go)
+- [ ] History API?
+- [ ] Separate "db" and "storage" models. first pass was blending XTDB APIs with Snodgrass style records and things are getting muddled.
+    - Storage layer will inform choices for querying ability at DB layer.
+- [ ] Should data read and write APIs return tx time and valid time context at all?
+- [ ] SQL backed implementation
+- [ ] Document new intuition about mutations + the 2D time graph
+    - [ ] Valid time management as a custom "version rule"?
+    - [ ] "Domain time"?
+    - [ ] Explore geographical map idea. 2D of data + transaction time => 3 dimensions?
+- [ ] Consider Datomic accumulate and retract event style. Immutable storage layer?
+- [ ] Visualizations. Interactive?

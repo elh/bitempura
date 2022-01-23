@@ -11,8 +11,8 @@ var ErrIDRequired = errors.New("id is required")
 
 var _ DB = (*memoryDB)(nil)
 
-// NewMemoryDB constructs a in-memory bitemporal DB
-// it may optionally be seeded with documents and transaction time may be controlled with SetNow
+// NewMemoryDB constructs a in-memory bitemporal DB.
+// It may optionally be seeded with documents and transaction time may be controlled with SetNow.
 func NewMemoryDB(documents map[string][]*Document) *memoryDB {
 	if documents == nil {
 		documents = map[string][]*Document{}
@@ -25,6 +25,7 @@ type memoryDB struct {
 	documents map[string][]*Document // id -> all "versions" of the document
 }
 
+// Find data by id (as of optional valid and transaction times).
 func (db *memoryDB) Find(id string, opts ...ReadOpt) (*Document, error) {
 	if id == "" {
 		return nil, ErrIDRequired
@@ -38,6 +39,7 @@ func (db *memoryDB) Find(id string, opts ...ReadOpt) (*Document, error) {
 	return db.findVersionByTime(vs, options.validTime, options.txTime)
 }
 
+// List all data (as of optional valid and transaction times).
 func (db *memoryDB) List(opts ...ReadOpt) ([]*Document, error) {
 	options := db.handleReadOpts(opts)
 
@@ -54,6 +56,7 @@ func (db *memoryDB) List(opts ...ReadOpt) ([]*Document, error) {
 	return ret, nil
 }
 
+// Put stores attributes (with optional start and end valid time).
 func (db *memoryDB) Put(id string, attributes Attributes, opts ...WriteOpt) error {
 	if id == "" {
 		return ErrIDRequired
@@ -61,6 +64,7 @@ func (db *memoryDB) Put(id string, attributes Attributes, opts ...WriteOpt) erro
 	return db.updateRecords(id, attributes, opts...)
 }
 
+// Delete removes attributes (with optional start and end valid time).
 func (db *memoryDB) Delete(id string, opts ...WriteOpt) error {
 	if id == "" {
 		return ErrIDRequired
@@ -84,7 +88,7 @@ func (db *memoryDB) updateRecords(id string, newAttributes Attributes, opts ...W
 		}
 
 		for _, overlappingV := range overlappingVs {
-			// note: playing fast and loose with just mutating document by ptr
+			// NOTE(elh): playing fast and loose with just mutating document by ptr
 			overlappingV.document.TxTimeEnd = &now
 
 			for _, overhang := range overlappingV.overhangs {

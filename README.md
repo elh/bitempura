@@ -1,22 +1,26 @@
 # bitemporal ⌛
 
-Building intuition about bitemporal databases by building one for myself.
+Building intuition about [bitemporal databases](https://en.wikipedia.org/wiki/Bitemporal_Modeling) by building one for myself.
 
-### TODO:
-- [x] [API v1 done](https://github.com/elh/bitemporal/blob/main/db.go). [In memory impl](https://github.com/elh/bitemporal/blob/main/memory.go)
-    - [x] Find
-    - [x] List
-    - [x] Put
-    - [x] Delete
-- [x] [XTDB, Robinhood example tests pass](https://github.com/elh/bitemporal/blob/main/memory_examples_test.go)
-- [ ] History API?
-- [ ] Document new intuition about mutations + the 2D time graph
-    - [ ] Valid time management as a custom "version rule"?
-    - [ ] "Domain time"?
-    - [ ] Explore geographical map idea. 2D of data + transaction time => 3 dimensions?
-- [ ] Separate "db" and "storage" models. first pass was blending XTDB APIs with Snodgrass style records and things are getting muddled.
-- [ ] Consider Datomic accumulate and retract event style
-- [ ] Consider immutable "storage" style
-- [ ] Should data read and write APIs return tx time and valid time context at all. maybe that is relegated to "history" APIs only
-- [ ] SQL backed impl
-- [ ] Visualization
+* Initial DB API is inspired by XTDB (and Datomic).
+* Record layout is inspired by Snodgrass' SQL implementations.
+
+```go
+// DB for bitemporal data.
+//
+// Temporal control options
+// On writes: WithValidTime, WithEndValidTime
+// On reads: AsOfValidTime, AsOfTransactionTime
+type DB interface {
+	// Find data by id (as of optional valid and transaction times).
+	Find(id string, opts ...ReadOpt) (*Document, error)
+	// List all data (as of optional valid and transaction times).
+	List(opts ...ReadOpt) ([]*Document, error)
+	// Put stores attributes (with optional start and end valid time).
+	Put(id string, attributes Attributes, opts ...WriteOpt) error
+	// Delete removes attributes (with optional start and end valid time).
+	Delete(id string, opts ...WriteOpt) error
+}
+```
+
+see [TODO](https://github.com/elh/bitemporal/blob/main/TODO.md)
