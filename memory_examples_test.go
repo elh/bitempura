@@ -8,7 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// case study tests
+// Case Study Tests
+// XTDB: see https://docs.xtdb.com/concepts/bitemporality/
+// Robinhood: see https://robinhood.engineering/tracking-temporal-data-at-robinhood-b62291644a31
 
 // XTDB Bitemporality > Example Queries > Crime Investigations
 // see https://docs.xtdb.com/concepts/bitemporality/
@@ -290,4 +292,65 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 		"arrival-time":   day11,
 		"departure-time": nil,
 	}, outByID[6].Attributes)
+}
+
+// Robinhood Eng blog > Tracking Temporal Data at Robinhood
+// see https://robinhood.engineering/tracking-temporal-data-at-robinhood-b62291644a31
+// > At Robinhood, accounting is a central part of our business...
+func TestRobinhoodExample(t *testing.T) {
+	db := NewMemoryDB(nil)
+
+	// Say you deposit $100 in your account on 3/14.
+	mar14 := mustParseTime(shortForm, "2021-03-14")
+	db.SetNow(mar14)
+	require.Nil(t, db.Put("user-1", Attributes{
+		"cash-balance": 100,
+		"description":  "Deposit", // description of last event??
+	}))
+	// On 3/20, you purchase 1 share of ABC stock at $25.
+	mar20 := mustParseTime(shortForm, "2021-03-20")
+	db.SetNow(mar20)
+	require.Nil(t, db.Put("user-1", Attributes{
+		"cash-balance": 75,
+		"description":  "Stock Purchase",
+	}))
+	// On 3/21, Robinhood received a price improvement, indicating the execution for your 1 share of ABC was
+	// actually $10.
+	mar21 := mustParseTime(shortForm, "2021-03-21")
+	db.SetNow(mar21)
+	require.Nil(t, db.Put("user-1", Attributes{
+		"cash-balance": 90,
+		"description":  "Price Improvement",
+	},
+		WithValidTime(mar20)))
+
+	// compacting...
+	findBalance := func(opts ...ReadOpt) interface{} {
+		ret, err := db.Find("user-1", opts...)
+		require.Nil(t, err)
+		return ret.Attributes["cash-balance"]
+	}
+	expectErrFindBalance := func(opts ...ReadOpt) {
+		_, err := db.Find("user-1", opts...)
+		require.NotNil(t, err)
+	}
+
+	// elh: now let's check the price at interesting points. see their diagram
+	mar13 := mustParseTime(shortForm, "2021-03-13") // before any VT, TT
+	// VT=now, TT=now. as of now
+	assert.Equal(t, 90, findBalance())
+	// VT=now, TT=3/20. before price correction
+	assert.Equal(t, 75, findBalance(AsOfTransactionTime(mar20)))
+	// VT=now, TT=3/14. before stock purchase
+	assert.Equal(t, 100, findBalance(AsOfTransactionTime(mar14)))
+	// VT=now, TT=3/13. before any record
+	expectErrFindBalance(AsOfTransactionTime(mar13))
+	// VT=3/14, TT=now. 3/14 balance as of now
+	assert.Equal(t, 100, findBalance(AsOfValidTime(mar14)))
+	// VT=3/14, TT=3/20. 3/14 balance before price correction
+	assert.Equal(t, 100, findBalance(AsOfTransactionTime(mar20), AsOfValidTime(mar14)))
+	// VT=3/14, TT=3/14. 3/14 balance before stock purchase
+	assert.Equal(t, 100, findBalance(AsOfTransactionTime(mar14), AsOfValidTime(mar14)))
+	// VT=3/14, TT=3/13. 3/14 balance before any record
+	expectErrFindBalance(AsOfTransactionTime(mar13), AsOfValidTime(mar14))
 }

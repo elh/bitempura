@@ -3,11 +3,12 @@
 Building intuition about bitemporal databases by building one for myself.
 
 ### TODO:
-- [x] API v1 done
+- [x] [API v1 done](https://github.com/elh/bitemporal/blob/main/db.go). [In memory impl](https://github.com/elh/bitemporal/blob/main/memory.go)
     - [x] Find
     - [x] List
     - [x] Put
     - [x] Delete
+- [x] [XTDB, Robinhood example tests pass](https://github.com/elh/bitemporal/blob/main/memory_examples_test.go)
 - [ ] History API?
 - [ ] Document new intuition about mutations + the 2D time graph
     - [ ] Valid time management as a custom "version rule"?
