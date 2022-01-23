@@ -13,15 +13,15 @@ import (
 )
 
 var (
-	shortForm = "2006-Jan-02" // simple time format
+	shortForm = "2006-01-02" // simple time format
 
 	// these test dates are always in the real-world past
-	t0 = mustParseTime(shortForm, "2021-Dec-31")
-	t1 = mustParseTime(shortForm, "2022-Jan-01")
-	t2 = mustParseTime(shortForm, "2022-Jan-02")
-	t3 = mustParseTime(shortForm, "2022-Jan-03")
-	t4 = mustParseTime(shortForm, "2022-Jan-04")
-	t5 = mustParseTime(shortForm, "2022-Jan-05")
+	t0 = mustParseTime(shortForm, "2021-12-31")
+	t1 = mustParseTime(shortForm, "2022-01-01")
+	t2 = mustParseTime(shortForm, "2022-01-02")
+	t3 = mustParseTime(shortForm, "2022-01-03")
+	t4 = mustParseTime(shortForm, "2022-01-04")
+	t5 = mustParseTime(shortForm, "2022-01-05")
 )
 
 func mustParseTime(layout, value string) time.Time {
@@ -1036,27 +1036,27 @@ func TestDelete(t *testing.T) {
 			testCases: []testCase{
 				{
 					desc:      "error if id not set",
-					now:       &t1,
+					now:       &t2,
 					id:        "",
 					expectErr: true,
 				},
 				{
 					desc:      "error if end valid time before valid time",
-					now:       &t1,
+					now:       &t2,
 					id:        "A",
 					writeOpts: []WriteOpt{WithValidTime(t3), WithEndValidTime(t0)},
 					expectErr: true,
 				},
 				{
 					desc:      "error if end valid time before valid time (default valid time)",
-					now:       &t1,
+					now:       &t2,
 					id:        "A",
 					writeOpts: []WriteOpt{WithEndValidTime(t0)},
 					expectErr: true,
 				},
 				{
 					desc:      "error if end valid time equal to valid time",
-					now:       &t1,
+					now:       &t2,
 					id:        "A",
 					writeOpts: []WriteOpt{WithValidTime(t0), WithEndValidTime(t0)},
 					expectErr: true,

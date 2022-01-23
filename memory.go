@@ -7,6 +7,7 @@ import (
 )
 
 var ErrNotFound = errors.New("not found")
+var ErrIDRequired = errors.New("id is required")
 
 var _ DB = (*memoryDB)(nil)
 
@@ -25,6 +26,9 @@ type memoryDB struct {
 }
 
 func (db *memoryDB) Find(id string, opts ...ReadOpt) (*Document, error) {
+	if id == "" {
+		return nil, ErrIDRequired
+	}
 	options := db.handleReadOpts(opts)
 
 	vs, ok := db.documents[id]
@@ -51,10 +55,16 @@ func (db *memoryDB) List(opts ...ReadOpt) ([]*Document, error) {
 }
 
 func (db *memoryDB) Put(id string, attributes Attributes, opts ...WriteOpt) error {
+	if id == "" {
+		return ErrIDRequired
+	}
 	return db.updateRecords(id, attributes, opts...)
 }
 
 func (db *memoryDB) Delete(id string, opts ...WriteOpt) error {
+	if id == "" {
+		return ErrIDRequired
+	}
 	return db.updateRecords(id, nil, opts...)
 }
 
@@ -127,6 +137,12 @@ func (db *memoryDB) handleWriteOpts(opts []WriteOpt) (options *writeOptions, now
 	for _, opt := range opts {
 		opt(options)
 	}
+
+	// validate write option times. this is relevant for Delete even if Put is validated at resource level
+	if options.endValidTime != nil && !options.endValidTime.After(options.validTime) {
+		return nil, time.Time{}, errors.New("valid time start must be before end")
+	}
+
 	return options, now, nil
 }
 
@@ -139,6 +155,7 @@ func (db *memoryDB) handleReadOpts(opts []ReadOpt) *readOptions {
 	for _, opt := range opts {
 		opt(options)
 	}
+
 	return options
 }
 
@@ -249,8 +266,8 @@ func (db *memoryDB) validateNow() error {
 		}
 	}
 	now := db.getNow()
-	if !now.After(latestInDB) {
-		return fmt.Errorf("now (%v) is not later that last transaction time in db (%v)", now, latestInDB)
+	if now.Before(latestInDB) {
+		return fmt.Errorf("now (%v) is before the last transaction time in db (%v)", now, latestInDB)
 	}
 	return nil
 }
