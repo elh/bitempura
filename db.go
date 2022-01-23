@@ -6,6 +6,7 @@ type Attributes map[string]interface{}
 
 // Document is the core data type
 // transaction and valid time starts are inclusive and ends are exclusive
+// TODO: separate "db" model and "storage" model. things got weird
 type Document struct {
 	ID             string
 	TxTimeStart    time.Time
@@ -29,7 +30,7 @@ type DB interface {
 
 type writeOptions struct {
 	validTime    time.Time
-	endValidTime time.Time
+	endValidTime *time.Time
 }
 
 type WriteOpt func(*writeOptions)
@@ -42,13 +43,13 @@ func WithValidTime(t time.Time) WriteOpt {
 
 func WithEndValidTime(t time.Time) WriteOpt {
 	return func(os *writeOptions) {
-		os.endValidTime = t
+		os.endValidTime = &t
 	}
 }
 
 type readOptions struct {
-	validTime       time.Time
-	transactionTime time.Time
+	validTime time.Time
+	txTime    time.Time
 }
 
 type ReadOpt func(*readOptions)
@@ -61,6 +62,6 @@ func AsOfValidTime(t time.Time) ReadOpt {
 
 func AsOfTransactionTime(t time.Time) ReadOpt {
 	return func(os *readOptions) {
-		os.transactionTime = t
+		os.txTime = t
 	}
 }
