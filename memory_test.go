@@ -966,3 +966,368 @@ func TestPut(t *testing.T) {
 		}
 	}
 }
+
+func TestDelete(t *testing.T) {
+	type fixtures struct {
+		name string
+		// make sure structs isolated between tests while doing in-mem mutations
+		documents func() map[string][]*Document
+	}
+
+	// verify writes by checking result of find as of configured valid time and tx time
+	type findCheck struct {
+		readOpts          []ReadOpt
+		expectErrNotFound bool
+		expectDocument    *Document
+	}
+
+	type testCase struct {
+		desc      string
+		now       *time.Time // manually control transaction time clock
+		id        string
+		writeOpts []WriteOpt
+		expectErr bool
+		// verify writes by checking result of find as of configured valid time and tx time
+		findChecks []findCheck
+	}
+
+	testCaseSets := []struct {
+		fixtures  fixtures
+		testCases []testCase
+	}{
+		{
+			fixtures: fixtures{
+				name:      "empty db",
+				documents: func() map[string][]*Document { return nil },
+			},
+			testCases: []testCase{
+				{
+					desc: "delete with no match is nop",
+					now:  &t1,
+					id:   "A",
+					findChecks: []findCheck{
+						{
+							expectErrNotFound: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			fixtures: fixtures{
+				name: "existing entry - no valid end",
+				documents: func() map[string][]*Document {
+					return map[string][]*Document{
+						"A": {
+							{
+								ID:             "A",
+								TxTimeStart:    t1,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   nil,
+								Attributes: Attributes{
+									"enabled": false,
+								},
+							},
+						},
+					}
+				},
+			},
+			testCases: []testCase{
+				{
+					desc:      "error if id not set",
+					now:       &t1,
+					id:        "",
+					expectErr: true,
+				},
+				{
+					desc:      "error if end valid time before valid time",
+					now:       &t1,
+					id:        "A",
+					writeOpts: []WriteOpt{WithValidTime(t3), WithEndValidTime(t0)},
+					expectErr: true,
+				},
+				{
+					desc:      "error if end valid time before valid time (default valid time)",
+					now:       &t1,
+					id:        "A",
+					writeOpts: []WriteOpt{WithEndValidTime(t0)},
+					expectErr: true,
+				},
+				{
+					desc:      "error if end valid time equal to valid time",
+					now:       &t1,
+					id:        "A",
+					writeOpts: []WriteOpt{WithValidTime(t0), WithEndValidTime(t0)},
+					expectErr: true,
+				},
+				{
+					desc: "basic delete",
+					now:  &t3,
+					id:   "A",
+					findChecks: []findCheck{
+						{
+							expectErrNotFound: true,
+						},
+						// before update in valid time
+						{
+							readOpts: []ReadOpt{AsOfValidTime(t2)},
+							expectDocument: &Document{
+								ID:             "A",
+								TxTimeStart:    t3,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   &t3,
+								Attributes: Attributes{
+									"enabled": false,
+								},
+							},
+						},
+						// before update in transaction time
+						{
+							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
+							expectDocument: &Document{
+								ID:             "A",
+								TxTimeStart:    t1,
+								TxTimeEnd:      &t3,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   nil,
+								Attributes: Attributes{
+									"enabled": false,
+								},
+							},
+						},
+					},
+				},
+				{
+					desc:      "put w/ valid time end. original record overhands on both sides",
+					now:       &t4,
+					writeOpts: []WriteOpt{WithValidTime(t2), WithEndValidTime(t3)},
+					id:        "A",
+					findChecks: []findCheck{
+						// query as of now for valid time and transaction time. change not visible
+						{
+							expectDocument: &Document{
+								ID:             "A",
+								TxTimeStart:    t4,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t3,
+								ValidTimeEnd:   nil,
+								Attributes: Attributes{
+									"enabled": false,
+								},
+							},
+						},
+						// query as of now for transaction time, before update for valid time. change not visible
+						{
+							readOpts: []ReadOpt{AsOfValidTime(t1)},
+							expectDocument: &Document{
+								ID:             "A",
+								TxTimeStart:    t4,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   &t2,
+								Attributes: Attributes{
+									"enabled": false,
+								},
+							},
+						},
+						// query as of now for valid time, before update for transaction time. change not visible
+						{
+							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
+							expectDocument: &Document{
+								ID:             "A",
+								TxTimeStart:    t1,
+								TxTimeEnd:      &t4,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   nil,
+								Attributes: Attributes{
+									"enabled": false,
+								},
+							},
+						},
+						// query as of valid time in range, transaction time after update. change visible
+						{
+							readOpts:          []ReadOpt{AsOfValidTime(t2), AsOfTransactionTime(t5)},
+							expectErrNotFound: true,
+						},
+					},
+				},
+				{
+					desc:      "put w/ valid time end. no overhang",
+					now:       &t4,
+					writeOpts: []WriteOpt{WithValidTime(t1)},
+					id:        "A",
+					findChecks: []findCheck{
+						// query as of now for valid time and transaction time. change visible
+						{
+							expectErrNotFound: true,
+						},
+						// query as of now for valid time, before update for transaction time. change not visible
+						{
+							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
+							expectDocument: &Document{
+								ID:             "A",
+								TxTimeStart:    t1,
+								TxTimeEnd:      &t4,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   nil,
+								Attributes: Attributes{
+									"enabled": false,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			fixtures: fixtures{
+				name: "existing entries. multiple valid time ranges active",
+				documents: func() map[string][]*Document {
+					return map[string][]*Document{
+						"A": {
+							{
+								ID:             "A",
+								TxTimeStart:    t1,
+								TxTimeEnd:      &t3,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   nil,
+								Attributes:     Attributes{"COUNT": 1},
+							},
+							{
+								ID:             "A",
+								TxTimeStart:    t3,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   &t3,
+								Attributes:     Attributes{"COUNT": 1},
+							},
+							{
+								ID:             "A",
+								TxTimeStart:    t3,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t3,
+								ValidTimeEnd:   nil,
+								Attributes:     Attributes{"COUNT": 99},
+							},
+						},
+					}
+				},
+			},
+			testCases: []testCase{
+				{
+					desc:      "put overlaps multiple versions",
+					now:       &t4,
+					id:        "A",
+					writeOpts: []WriteOpt{WithValidTime(t2), WithEndValidTime(t4)},
+					findChecks: []findCheck{
+						// TT = t5, VT = t4. after update transaction, not in valid range. too high
+						{
+							readOpts: []ReadOpt{AsOfTransactionTime(t5)},
+							expectDocument: &Document{
+								ID:             "A",
+								TxTimeStart:    t4,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t4,
+								ValidTimeEnd:   nil,
+								Attributes: Attributes{
+									"COUNT": 99,
+								},
+							},
+						},
+						// TT = t5, VT = t1. after update transaction, not in valid range. too low
+						{
+							readOpts: []ReadOpt{AsOfTransactionTime(t5), AsOfValidTime(t1)},
+							expectDocument: &Document{
+								ID:             "A",
+								TxTimeStart:    t4,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   &t2,
+								Attributes: Attributes{
+									"COUNT": 1,
+								},
+							},
+						},
+						// TT = t5, VT = t3. after update transaction, in valid range
+						{
+							readOpts:          []ReadOpt{AsOfTransactionTime(t5), AsOfValidTime(t3)},
+							expectErrNotFound: true,
+						},
+						// TT = t3, VT = t2 before update transaction, in the fixture original range
+						{
+							readOpts: []ReadOpt{AsOfTransactionTime(t3), AsOfValidTime(t2)},
+							expectDocument: &Document{
+								ID:             "A",
+								TxTimeStart:    t3,
+								TxTimeEnd:      &t4,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   &t3,
+								Attributes: Attributes{
+									"COUNT": 1,
+								},
+							},
+						},
+						// TT = t3, VT = t4. before update transaction, in the fixture updated range
+						{
+							readOpts: []ReadOpt{AsOfTransactionTime(t3), AsOfValidTime(t4)},
+							expectDocument: &Document{
+								ID:             "A",
+								TxTimeStart:    t3,
+								TxTimeEnd:      &t4,
+								ValidTimeStart: t3,
+								ValidTimeEnd:   nil,
+								Attributes: Attributes{
+									"COUNT": 99,
+								},
+							},
+						},
+						// TT = t2, VT = t2. before 1st fixture update transaction
+						{
+							readOpts: []ReadOpt{AsOfTransactionTime(t2), AsOfValidTime(t2)},
+							expectDocument: &Document{
+								ID:             "A",
+								TxTimeStart:    t1,
+								TxTimeEnd:      &t3,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   nil,
+								Attributes: Attributes{
+									"COUNT": 1,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, s := range testCaseSets {
+		s := s
+		for _, tC := range s.testCases {
+			tC := tC
+			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
+				db := NewMemoryDB(s.fixtures.documents())
+				if tC.now != nil {
+					db.SetNow(*tC.now)
+				}
+				err := db.Delete(tC.id, tC.writeOpts...)
+				if tC.expectErr {
+					require.NotNil(t, err)
+					return
+				}
+				require.Nil(t, err)
+
+				for _, findCheck := range tC.findChecks {
+					ret, err := db.Find(tC.id, findCheck.readOpts...)
+					if findCheck.expectErrNotFound {
+						require.ErrorIs(t, err, ErrNotFound)
+						return
+					}
+					require.Nil(t, err)
+					assert.Equal(t, findCheck.expectDocument, ret)
+				}
+			})
+		}
+	}
+}

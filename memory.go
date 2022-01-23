@@ -8,8 +8,10 @@ import (
 
 var ErrNotFound = errors.New("not found")
 
+var _ DB = (*memoryDB)(nil)
+
 // NewMemoryDB constructs a in-memory bitemporal DB
-// it may optionally be seeded with documents
+// it may optionally be seeded with documents and transaction time may be controlled with SetNow
 func NewMemoryDB(documents map[string][]*Document) *memoryDB {
 	if documents == nil {
 		documents = map[string][]*Document{}
@@ -49,6 +51,16 @@ func (db *memoryDB) List(opts ...ReadOpt) ([]*Document, error) {
 }
 
 func (db *memoryDB) Put(id string, attributes Attributes, opts ...WriteOpt) error {
+	return db.updateRecords(id, attributes, opts...)
+}
+
+func (db *memoryDB) Delete(id string, opts ...WriteOpt) error {
+	return db.updateRecords(id, nil, opts...)
+}
+
+// common logic of Put and Delete. handling of existing records and "overhand" is the same. If newAttributes is nil,
+// none is created (Delete case).
+func (db *memoryDB) updateRecords(id string, newAttributes Attributes, opts ...WriteOpt) error {
 	options, now, err := db.handleWriteOpts(opts)
 	if err != nil {
 		return err
@@ -82,24 +94,23 @@ func (db *memoryDB) Put(id string, attributes Attributes, opts ...WriteOpt) erro
 		}
 	}
 
-	newDoc := &Document{
-		ID:             id,
-		TxTimeStart:    now,
-		TxTimeEnd:      nil,
-		ValidTimeStart: options.validTime,
-		ValidTimeEnd:   options.endValidTime,
-		Attributes:     attributes,
-	}
-	if err := newDoc.Validate(); err != nil {
-		return err
+	// add newAttributes for Put API, nop for Delete API
+	if newAttributes != nil {
+		newDoc := &Document{
+			ID:             id,
+			TxTimeStart:    now,
+			TxTimeEnd:      nil,
+			ValidTimeStart: options.validTime,
+			ValidTimeEnd:   options.endValidTime,
+			Attributes:     newAttributes,
+		}
+		if err := newDoc.Validate(); err != nil {
+			return err
+		}
+		db.documents[id] = append(db.documents[id], newDoc)
 	}
 
-	db.documents[id] = append(db.documents[id], newDoc)
 	return nil
-}
-
-func (db *memoryDB) Delete(id string, opts ...WriteOpt) error {
-	return errors.New("unimplemented")
 }
 
 func (db *memoryDB) handleWriteOpts(opts []WriteOpt) (options *writeOptions, now time.Time, err error) {

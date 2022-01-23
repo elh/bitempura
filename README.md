@@ -3,11 +3,11 @@
 Building intuition about bitemporal databases by building one for myself.
 
 ### TODO:
-- [ ] API v1 done
+- [x] API v1 done
     - [x] Find
     - [x] List
     - [x] Put
-    - [ ] Delete
+    - [x] Delete
 - [ ] History API?
 - [ ] Document new intuition about mutations + the 2D time graph
     - [ ] Valid time management as a custom "version rule"?
