@@ -1,6 +1,9 @@
 package bitemporal
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type Attributes map[string]interface{}
 
@@ -14,6 +17,38 @@ type Document struct {
 	ValidTimeStart time.Time
 	ValidTimeEnd   *time.Time
 	Attributes     Attributes
+}
+
+func (d *Document) Validate() error {
+	if d.ID == "" {
+		return errors.New("id is required")
+	}
+	if d.TxTimeStart.IsZero() {
+		return errors.New("transaction time start cannot be zero value")
+	}
+	if d.TxTimeEnd != nil {
+		if d.TxTimeEnd.IsZero() {
+			return errors.New("transaction time end cannot be zero value")
+		}
+		if !d.TxTimeStart.Before(*d.TxTimeEnd) {
+			return errors.New("transaction time start must be before end")
+		}
+	}
+	if d.ValidTimeStart.IsZero() {
+		return errors.New("valid time start cannot be zero value")
+	}
+	if d.ValidTimeEnd != nil {
+		if d.ValidTimeEnd.IsZero() {
+			return errors.New("valid time end cannot be zero value")
+		}
+		if !d.ValidTimeStart.Before(*d.ValidTimeEnd) {
+			return errors.New("valid time start must be before end")
+		}
+	}
+	if d.Attributes == nil {
+		return errors.New("attributes cannot be null")
+	}
+	return nil
 }
 
 // DB for bitemporal documents

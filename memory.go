@@ -49,24 +49,74 @@ func (db *memoryDB) List(opts ...ReadOpt) ([]*Document, error) {
 }
 
 func (db *memoryDB) Put(id string, attributes Attributes, opts ...WriteOpt) error {
-	return errors.New("unimplemented")
+	options, now, err := db.handleWriteOpts(opts)
+	if err != nil {
+		return err
+	}
+
+	vs, ok := db.documents[id]
+	if ok {
+		overlappingVs, err := db.findOverlappingValidTimeVersions(vs, options.validTime, options.endValidTime, now)
+		if err != nil {
+			return err
+		}
+
+		for _, overlappingV := range overlappingVs {
+			// note: playing fast and loose with just mutating document by ptr
+			overlappingV.document.TxTimeEnd = &now
+
+			for _, overhang := range overlappingV.overhangs {
+				overhangDoc := &Document{
+					ID:             id,
+					TxTimeStart:    now,
+					TxTimeEnd:      nil,
+					ValidTimeStart: overhang.start,
+					ValidTimeEnd:   overhang.end,
+					Attributes:     overlappingV.document.Attributes,
+				}
+				if err := overhangDoc.Validate(); err != nil {
+					return err
+				}
+				db.documents[id] = append(db.documents[id], overhangDoc)
+			}
+		}
+	}
+
+	newDoc := &Document{
+		ID:             id,
+		TxTimeStart:    now,
+		TxTimeEnd:      nil,
+		ValidTimeStart: options.validTime,
+		ValidTimeEnd:   options.endValidTime,
+		Attributes:     attributes,
+	}
+	if err := newDoc.Validate(); err != nil {
+		return err
+	}
+
+	db.documents[id] = append(db.documents[id], newDoc)
+	return nil
 }
 
 func (db *memoryDB) Delete(id string, opts ...WriteOpt) error {
 	return errors.New("unimplemented")
 }
 
-//nolint:unused,deadcode // writes unimplemented
-func (db *memoryDB) handleWriteOpts(opts []WriteOpt) *writeOptions {
-	now := db.getNow()
-	options := &writeOptions{
+func (db *memoryDB) handleWriteOpts(opts []WriteOpt) (options *writeOptions, now time.Time, err error) {
+	// gut check to prevent invalid tx times due to testing overrides
+	if err := db.validateNow(); err != nil {
+		return nil, time.Time{}, err
+	}
+
+	now = db.getNow()
+	options = &writeOptions{
 		validTime:    now,
 		endValidTime: nil,
 	}
 	for _, opt := range opts {
 		opt(options)
 	}
-	return options
+	return options, now, nil
 }
 
 func (db *memoryDB) handleReadOpts(opts []ReadOpt) *readOptions {
@@ -88,8 +138,8 @@ func (db *memoryDB) handleReadOpts(opts []ReadOpt) *readOptions {
 func (db *memoryDB) findVersionByTime(vs []*Document, validTime, txTime time.Time) (*Document, error) {
 	var out *Document
 	for _, v := range vs {
-		if db.inRange(validTime, v.ValidTimeStart, v.ValidTimeEnd) &&
-			db.inRange(txTime, v.TxTimeStart, v.TxTimeEnd) {
+		if db.isInRange(validTime, timeRange{v.ValidTimeStart, v.ValidTimeEnd}) &&
+			db.isInRange(txTime, timeRange{v.TxTimeStart, v.TxTimeEnd}) {
 			if out != nil {
 				return nil, fmt.Errorf("multiple versions matched find for validTime: %v, txTime: %v", validTime, txTime)
 			}
@@ -102,9 +152,61 @@ func (db *memoryDB) findVersionByTime(vs []*Document, validTime, txTime time.Tim
 	return out, nil
 }
 
-func (db *memoryDB) inRange(t, start time.Time, end *time.Time) bool {
-	return (t.Equal(start) || t.After(start)) &&
-		(end == nil || t.Before(*end))
+type overlappingVersion struct {
+	document  *Document
+	overhangs []timeRange
+}
+
+func (db *memoryDB) findOverlappingValidTimeVersions(vs []*Document, validTimeStart time.Time, validTimeEnd *time.Time, txTime time.Time) ([]overlappingVersion, error) {
+	var out []overlappingVersion
+	for _, v := range vs {
+		if !db.isInRange(txTime, timeRange{v.TxTimeStart, v.TxTimeEnd}) {
+			continue
+		}
+		hasOverlap, curOverhang := db.hasOverlap(timeRange{validTimeStart, validTimeEnd}, timeRange{v.ValidTimeStart, v.ValidTimeEnd})
+		if !hasOverlap {
+			continue
+		}
+		out = append(out, overlappingVersion{
+			document:  v,
+			overhangs: curOverhang,
+		})
+	}
+
+	return out, nil
+}
+
+// start is inclusive, end is exclusive
+type timeRange struct {
+	start time.Time
+	end   *time.Time
+}
+
+func (db *memoryDB) isInRange(t time.Time, r timeRange) bool {
+	return (t.Equal(r.start) || t.After(r.start)) && (r.end == nil || t.Before(*r.end))
+}
+
+// given 2 time ranges, hasOverlap = true if the two ranges intersect.
+// if they overlap, yOverhangs represents that intervals within y that are not in x.
+// hasOverlap(a, b) =/= hasOverlap(b, a)
+// examples:
+//     hasOverlap(|10,20|, |5,50|) -> yOverhangs: [|5,10|, |20,50|]
+//     hasOverlap(|10,20|, |15,30|) -> yOverhangs: [|20,30|]
+//     hasOverlap(|10,20|, |15,20|) -> yOverhangs: []
+//     hasOverlap(|10,20|, |12,13|) -> yOverhangs: []
+func (db *memoryDB) hasOverlap(x, y timeRange) (hasOverlap bool, yOverhangs []timeRange) {
+	hasOverlap = (y.end == nil || x.start.Before(*y.end)) && (x.end == nil || y.start.Before(*x.end))
+	if hasOverlap {
+		// come up with fancier interval math here
+		if y.start.Before(x.start) {
+			yOverhangs = append(yOverhangs, timeRange{y.start, &x.start})
+		}
+		if x.end != nil && (y.end == nil || x.end.Before(*y.end)) {
+			yOverhangs = append(yOverhangs, timeRange{*x.end, y.end})
+		}
+	}
+
+	return hasOverlap, yOverhangs
 }
 
 // for testing
@@ -123,7 +225,6 @@ func (db *memoryDB) getNow() time.Time {
 }
 
 // when doing a new write, ensure that "now" is monotonically increasing for all transaction times in db.
-//nolint:unused,deadcode // writes unimplemented
 func (db *memoryDB) validateNow() error {
 	var latestInDB time.Time
 	for _, versions := range db.documents {
@@ -131,7 +232,7 @@ func (db *memoryDB) validateNow() error {
 			if v.TxTimeStart.After(latestInDB) {
 				latestInDB = v.TxTimeStart
 			}
-			if v.TxTimeEnd.After(latestInDB) {
+			if v.TxTimeEnd != nil && v.TxTimeEnd.After(latestInDB) {
 				latestInDB = *v.TxTimeEnd
 			}
 		}
