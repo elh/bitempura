@@ -33,7 +33,19 @@ func (db *memoryDB) Find(id string, opts ...ReadOpt) (*Document, error) {
 }
 
 func (db *memoryDB) List(opts ...ReadOpt) ([]*Document, error) {
-	return nil, errors.New("unimplemented")
+	options := db.handleReadOpts(opts)
+
+	var ret []*Document
+	for _, vs := range db.documents {
+		v, err := db.findVersionByTime(vs, options.validTime, options.txTime)
+		if errors.Is(err, ErrNotFound) {
+			continue
+		} else if err != nil {
+			return nil, err
+		}
+		ret = append(ret, v)
+	}
+	return ret, nil
 }
 
 func (db *memoryDB) Put(id string, attributes Attributes, opts ...WriteOpt) error {

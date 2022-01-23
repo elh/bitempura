@@ -5,7 +5,7 @@ Building intuition about bitemporal databases by building one for myself.
 ### TODO:
 - [ ] API v1 done
     - [x] Find
-    - [ ] List
+    - [x] List
     - [ ] Put
     - [ ] Delete
 - [ ] History API?

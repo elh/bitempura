@@ -3,6 +3,7 @@ package bitemporal_test
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -318,4 +319,152 @@ func TestFind(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestList(t *testing.T) {
+	type fixtures struct {
+		name      string
+		documents map[string][]*Document
+	}
+
+	aDoc := &Document{
+		ID:             "A",
+		TxTimeStart:    t1,
+		TxTimeEnd:      nil,
+		ValidTimeStart: t1,
+		ValidTimeEnd:   nil,
+		Attributes: Attributes{
+			"status": "ACTIVE",
+		},
+	}
+	aFixtures := fixtures{
+		name: "A document",
+		documents: map[string][]*Document{
+			"A": {
+				aDoc,
+			},
+		},
+	}
+	bDoc := &Document{
+		ID:             "B",
+		TxTimeStart:    t1,
+		TxTimeEnd:      &t3,
+		ValidTimeStart: t1,
+		ValidTimeEnd:   nil,
+		Attributes: Attributes{
+			"status": "ACTIVE",
+		},
+	}
+	bDocUpdate1 := &Document{
+		ID:             "B",
+		TxTimeStart:    t3,
+		TxTimeEnd:      nil,
+		ValidTimeStart: t1,
+		ValidTimeEnd:   &t3,
+		Attributes: Attributes{
+			"status": "ACTIVE",
+		},
+	}
+	bDocUpdate2 := &Document{
+		ID:             "B",
+		TxTimeStart:    t3,
+		TxTimeEnd:      nil,
+		ValidTimeStart: t3,
+		ValidTimeEnd:   nil,
+		Attributes: Attributes{
+			"status": "CANCELLED",
+		},
+	}
+	bFixtures := fixtures{
+		name: "A, B documents",
+		documents: map[string][]*Document{
+			"A": {
+				aDoc,
+			},
+			"B": {
+				bDoc,
+				bDocUpdate1,
+				bDocUpdate2,
+			},
+		},
+	}
+
+	type testCase struct {
+		desc            string
+		readOpts        []ReadOpt
+		expectErr       bool
+		expectDocuments []*Document
+	}
+
+	testCaseSets := []struct {
+		fixtures  fixtures
+		testCases []testCase
+	}{
+		{
+			fixtures: fixtures{
+				name:      "empty db",
+				documents: nil,
+			},
+			testCases: []testCase{
+				{
+					desc:            "not found",
+					expectDocuments: nil,
+				},
+			},
+		},
+		{
+			fixtures: aFixtures,
+			testCases: []testCase{
+				{
+					desc:            "found - default as of times",
+					expectDocuments: []*Document{aDoc},
+				},
+			},
+		},
+		{
+			fixtures: bFixtures,
+			testCases: []testCase{
+				{
+					desc:            "found - default as of times",
+					expectDocuments: []*Document{aDoc, bDocUpdate2},
+				},
+				{
+					desc:            "not found - as of transaction time",
+					readOpts:        []ReadOpt{AsOfTransactionTime(t0)},
+					expectDocuments: nil,
+				},
+				{
+					desc:            "found - as of valid time",
+					readOpts:        []ReadOpt{AsOfValidTime(t2)},
+					expectDocuments: []*Document{aDoc, bDocUpdate1},
+				},
+			},
+		},
+	}
+	for _, s := range testCaseSets {
+		s := s
+		for _, tC := range s.testCases {
+			tC := tC
+			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
+				db := NewMemoryDB(s.fixtures.documents)
+				ret, err := db.List(tC.readOpts...)
+				if tC.expectErr {
+					require.NotErrorIs(t, err, ErrNotFound)
+					require.NotNil(t, err)
+					return
+				}
+				require.Nil(t, err)
+				require.Len(t, ret, len(tC.expectDocuments))
+				if len(tC.expectDocuments) == 0 {
+					return
+				}
+				assert.Equal(t, sortDocumentsByID(tC.expectDocuments), sortDocumentsByID(ret))
+			})
+		}
+	}
+}
+
+func sortDocumentsByID(ds []*Document) []*Document {
+	sort.Slice(ds, func(i, j int) bool { return ds[i].ID < ds[j].ID })
+	return ds
 }
