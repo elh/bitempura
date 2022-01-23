@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  test:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
@@ -19,3 +19,12 @@ jobs:
       run: go build -v ./...
     - name: Test
       run: go test -v ./...
+  golangci:
+    name: lint
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.33.0 # elh: my current version
