@@ -42,6 +42,141 @@ func toJSON(v interface{}) string {
 	return string(out)
 }
 
+func TestConstructor(t *testing.T) {
+	type fixtures struct {
+		name string
+		// make sure structs isolated between tests while doing in-mem mutations
+		documents func() []*Document
+	}
+
+	type testCase struct {
+		desc      string
+		expectErr bool
+	}
+
+	testCaseSets := []struct {
+		fixtures  fixtures
+		testCases []testCase
+	}{
+		{
+			fixtures: fixtures{
+				name:      "empty db",
+				documents: func() []*Document { return nil },
+			},
+			testCases: []testCase{
+				{
+					desc: "okay",
+				},
+			},
+		},
+		{
+			fixtures: fixtures{
+				name: "overlapping transaction time",
+				documents: func() []*Document {
+					return []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t2,
+							Attributes:     Attributes{"dimensions": 1},
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t2,
+							TxTimeEnd:      &t3,
+							ValidTimeStart: t2,
+							ValidTimeEnd:   nil,
+							Attributes:     Attributes{"dimensions": 2},
+						},
+					}
+				},
+			},
+			testCases: []testCase{
+				{
+					desc: "okay",
+				},
+			},
+		},
+		{
+			fixtures: fixtures{
+				name: "overlapping valid time",
+				documents: func() []*Document {
+					return []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      &t2,
+							ValidTimeStart: t2,
+							ValidTimeEnd:   &t4,
+							Attributes:     Attributes{"dimensions": 1},
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t2,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t3,
+							Attributes:     Attributes{"dimensions": 2},
+						},
+					}
+				},
+			},
+			testCases: []testCase{
+				{
+					desc: "okay",
+				},
+			},
+		},
+		{
+			fixtures: fixtures{
+				name: "overlapping transaction time and valid time",
+				documents: func() []*Document {
+					return []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t3,
+							Attributes:     Attributes{"dimensions": 1},
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t2,
+							TxTimeEnd:      &t3,
+							ValidTimeStart: t2,
+							ValidTimeEnd:   nil,
+							Attributes:     Attributes{"dimensions": 2},
+						},
+					}
+				},
+			},
+			testCases: []testCase{
+				{
+					desc:      "returns error",
+					expectErr: true,
+				},
+			},
+		},
+	}
+	for _, s := range testCaseSets {
+		s := s
+		for _, tC := range s.testCases {
+			tC := tC
+			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
+				_, err := memory.NewDB(s.fixtures.documents())
+				if tC.expectErr {
+					require.NotNil(t, err)
+					return
+				}
+				require.Nil(t, err)
+			})
+		}
+	}
+}
+
 func TestFind(t *testing.T) {
 	type fixtures struct {
 		name string
