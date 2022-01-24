@@ -46,7 +46,7 @@ func TestFind(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
-		documents func() map[string][]*Document
+		documents func() []*Document
 	}
 
 	put1Attrs := Attributes{"score": 100}
@@ -54,17 +54,15 @@ func TestFind(t *testing.T) {
 	// 1 initial put
 	aDocsSinglePut := fixtures{
 		name: "single put, no end",
-		documents: func() map[string][]*Document {
-			return map[string][]*Document{
-				"A": {
-					{
-						ID:             "A",
-						TxTimeStart:    t1,
-						TxTimeEnd:      nil,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   nil,
-						Attributes:     put1Attrs,
-					},
+		documents: func() []*Document {
+			return []*Document{
+				{
+					ID:             "A",
+					TxTimeStart:    t1,
+					TxTimeEnd:      nil,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   nil,
+					Attributes:     put1Attrs,
 				},
 			}
 		},
@@ -72,17 +70,15 @@ func TestFind(t *testing.T) {
 	// 1 initial put with a valid time end
 	aDocsSinglePutWithEnd := fixtures{
 		name: "single put, with end",
-		documents: func() map[string][]*Document {
-			return map[string][]*Document{
-				"A": {
-					{
-						ID:             "A",
-						TxTimeStart:    t1,
-						TxTimeEnd:      nil,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   &t3,
-						Attributes:     put1Attrs,
-					},
+		documents: func() []*Document {
+			return []*Document{
+				{
+					ID:             "A",
+					TxTimeStart:    t1,
+					TxTimeEnd:      nil,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   &t3,
+					Attributes:     put1Attrs,
 				},
 			}
 		},
@@ -91,58 +87,54 @@ func TestFind(t *testing.T) {
 	// // this sets a TxTimeEnd for the initial record and creates 2 new ones
 	aDocsUpdated := fixtures{
 		name: "initial put, and then put with later valid time",
-		documents: func() map[string][]*Document {
-			return map[string][]*Document{
-				"A": {
-					{
-						ID:             "A",
-						TxTimeStart:    t1,
-						TxTimeEnd:      &t3,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   nil,
-						Attributes:     put1Attrs,
-					},
-					{
-						ID:             "A",
-						TxTimeStart:    t3,
-						TxTimeEnd:      nil,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   &t3,
-						Attributes:     put1Attrs,
-					},
-					{
-						ID:             "A",
-						TxTimeStart:    t3,
-						TxTimeEnd:      nil,
-						ValidTimeStart: t3,
-						ValidTimeEnd:   nil,
-						Attributes:     put2Attrs,
-					},
+		documents: func() []*Document {
+			return []*Document{
+				{
+					ID:             "A",
+					TxTimeStart:    t1,
+					TxTimeEnd:      &t3,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   nil,
+					Attributes:     put1Attrs,
+				},
+				{
+					ID:             "A",
+					TxTimeStart:    t3,
+					TxTimeEnd:      nil,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   &t3,
+					Attributes:     put1Attrs,
+				},
+				{
+					ID:             "A",
+					TxTimeStart:    t3,
+					TxTimeEnd:      nil,
+					ValidTimeStart: t3,
+					ValidTimeEnd:   nil,
+					Attributes:     put2Attrs,
 				},
 			}
 		},
 	}
 	aDocsDeleted := fixtures{
 		name: "initial put, and then deletion with later valid time",
-		documents: func() map[string][]*Document {
-			return map[string][]*Document{
-				"A": {
-					{
-						ID:             "A",
-						TxTimeStart:    t1,
-						TxTimeEnd:      &t3,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   nil,
-						Attributes:     put1Attrs,
-					},
-					{
-						ID:             "A",
-						TxTimeStart:    t3,
-						TxTimeEnd:      nil,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   &t3,
-						Attributes:     put1Attrs,
-					},
+		documents: func() []*Document {
+			return []*Document{
+				{
+					ID:             "A",
+					TxTimeStart:    t1,
+					TxTimeEnd:      &t3,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   nil,
+					Attributes:     put1Attrs,
+				},
+				{
+					ID:             "A",
+					TxTimeStart:    t3,
+					TxTimeEnd:      nil,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   &t3,
+					Attributes:     put1Attrs,
 				},
 			}
 		},
@@ -164,7 +156,7 @@ func TestFind(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name:      "empty db",
-				documents: func() map[string][]*Document { return nil },
+				documents: func() []*Document { return nil },
 			},
 			testCases: []testCase{
 				{
@@ -311,7 +303,8 @@ func TestFind(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db := memory.NewDB(s.fixtures.documents())
+				db, err := memory.NewDB(s.fixtures.documents())
+				require.Nil(t, err)
 				ret, err := db.Find(tC.id, tC.readOpts...)
 				if tC.expectErrNotFound {
 					require.ErrorIs(t, err, ErrNotFound)
@@ -332,7 +325,7 @@ func TestList(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
-		documents func() map[string][]*Document
+		documents func() []*Document
 	}
 
 	aDoc := &Document{
@@ -347,11 +340,9 @@ func TestList(t *testing.T) {
 	}
 	aFixtures := fixtures{
 		name: "A document",
-		documents: func() map[string][]*Document {
-			return map[string][]*Document{
-				"A": {
-					aDoc,
-				},
+		documents: func() []*Document {
+			return []*Document{
+				aDoc,
 			}
 		},
 	}
@@ -387,16 +378,12 @@ func TestList(t *testing.T) {
 	}
 	bFixtures := fixtures{
 		name: "A, B documents",
-		documents: func() map[string][]*Document {
-			return map[string][]*Document{
-				"A": {
-					aDoc,
-				},
-				"B": {
-					bDoc,
-					bDocUpdate1,
-					bDocUpdate2,
-				},
+		documents: func() []*Document {
+			return []*Document{
+				aDoc,
+				bDoc,
+				bDocUpdate1,
+				bDocUpdate2,
 			}
 		},
 	}
@@ -415,7 +402,7 @@ func TestList(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name:      "empty db",
-				documents: func() map[string][]*Document { return nil },
+				documents: func() []*Document { return nil },
 			},
 			testCases: []testCase{
 				{
@@ -458,7 +445,8 @@ func TestList(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db := memory.NewDB(s.fixtures.documents())
+				db, err := memory.NewDB(s.fixtures.documents())
+				require.Nil(t, err)
 				ret, err := db.List(tC.readOpts...)
 				if tC.expectErr {
 					require.NotErrorIs(t, err, ErrNotFound)
@@ -487,7 +475,7 @@ func TestPut(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
-		documents func() map[string][]*Document
+		documents func() []*Document
 	}
 
 	// verify writes by checking result of find as of configured valid time and tx time
@@ -515,7 +503,7 @@ func TestPut(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name:      "empty db",
-				documents: func() map[string][]*Document { return nil },
+				documents: func() []*Document { return nil },
 			},
 			testCases: []testCase{
 				{
@@ -637,18 +625,16 @@ func TestPut(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "existing entry - no valid end",
-				documents: func() map[string][]*Document {
-					return map[string][]*Document{
-						"A": {
-							{
-								ID:             "A",
-								TxTimeStart:    t1,
-								TxTimeEnd:      nil,
-								ValidTimeStart: t1,
-								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+				documents: func() []*Document {
+					return []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   nil,
+							Attributes: Attributes{
+								"enabled": false,
 							},
 						},
 					}
@@ -808,33 +794,31 @@ func TestPut(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "existing entries. multiple valid time ranges active",
-				documents: func() map[string][]*Document {
-					return map[string][]*Document{
-						"A": {
-							{
-								ID:             "A",
-								TxTimeStart:    t1,
-								TxTimeEnd:      &t3,
-								ValidTimeStart: t1,
-								ValidTimeEnd:   nil,
-								Attributes:     Attributes{"COUNT": 1},
-							},
-							{
-								ID:             "A",
-								TxTimeStart:    t3,
-								TxTimeEnd:      nil,
-								ValidTimeStart: t1,
-								ValidTimeEnd:   &t3,
-								Attributes:     Attributes{"COUNT": 1},
-							},
-							{
-								ID:             "A",
-								TxTimeStart:    t3,
-								TxTimeEnd:      nil,
-								ValidTimeStart: t3,
-								ValidTimeEnd:   nil,
-								Attributes:     Attributes{"COUNT": 99},
-							},
+				documents: func() []*Document {
+					return []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      &t3,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   nil,
+							Attributes:     Attributes{"COUNT": 1},
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t3,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t3,
+							Attributes:     Attributes{"COUNT": 1},
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t3,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t3,
+							ValidTimeEnd:   nil,
+							Attributes:     Attributes{"COUNT": 99},
 						},
 					}
 				},
@@ -941,11 +925,12 @@ func TestPut(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db := memory.NewDB(s.fixtures.documents())
+				db, err := memory.NewDB(s.fixtures.documents())
+				require.Nil(t, err)
 				if tC.now != nil {
 					db.SetNow(*tC.now)
 				}
-				err := db.Put(tC.id, tC.attributes, tC.writeOpts...)
+				err = db.Put(tC.id, tC.attributes, tC.writeOpts...)
 				if tC.expectErr {
 					require.NotNil(t, err)
 					return
@@ -970,7 +955,7 @@ func TestDelete(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
-		documents func() map[string][]*Document
+		documents func() []*Document
 	}
 
 	// verify writes by checking result of find as of configured valid time and tx time
@@ -997,7 +982,7 @@ func TestDelete(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name:      "empty db",
-				documents: func() map[string][]*Document { return nil },
+				documents: func() []*Document { return nil },
 			},
 			testCases: []testCase{
 				{
@@ -1015,18 +1000,16 @@ func TestDelete(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "existing entry - no valid end",
-				documents: func() map[string][]*Document {
-					return map[string][]*Document{
-						"A": {
-							{
-								ID:             "A",
-								TxTimeStart:    t1,
-								TxTimeEnd:      nil,
-								ValidTimeStart: t1,
-								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+				documents: func() []*Document {
+					return []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   nil,
+							Attributes: Attributes{
+								"enabled": false,
 							},
 						},
 					}
@@ -1177,33 +1160,31 @@ func TestDelete(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "existing entries. multiple valid time ranges active",
-				documents: func() map[string][]*Document {
-					return map[string][]*Document{
-						"A": {
-							{
-								ID:             "A",
-								TxTimeStart:    t1,
-								TxTimeEnd:      &t3,
-								ValidTimeStart: t1,
-								ValidTimeEnd:   nil,
-								Attributes:     Attributes{"COUNT": 1},
-							},
-							{
-								ID:             "A",
-								TxTimeStart:    t3,
-								TxTimeEnd:      nil,
-								ValidTimeStart: t1,
-								ValidTimeEnd:   &t3,
-								Attributes:     Attributes{"COUNT": 1},
-							},
-							{
-								ID:             "A",
-								TxTimeStart:    t3,
-								TxTimeEnd:      nil,
-								ValidTimeStart: t3,
-								ValidTimeEnd:   nil,
-								Attributes:     Attributes{"COUNT": 99},
-							},
+				documents: func() []*Document {
+					return []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      &t3,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   nil,
+							Attributes:     Attributes{"COUNT": 1},
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t3,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t3,
+							Attributes:     Attributes{"COUNT": 1},
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t3,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t3,
+							ValidTimeEnd:   nil,
+							Attributes:     Attributes{"COUNT": 99},
 						},
 					}
 				},
@@ -1300,11 +1281,12 @@ func TestDelete(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db := memory.NewDB(s.fixtures.documents())
+				db, err := memory.NewDB(s.fixtures.documents())
+				require.Nil(t, err)
 				if tC.now != nil {
 					db.SetNow(*tC.now)
 				}
-				err := db.Delete(tC.id, tC.writeOpts...)
+				err = db.Delete(tC.id, tC.writeOpts...)
 				if tC.expectErr {
 					require.NotNil(t, err)
 					return
@@ -1329,7 +1311,7 @@ func TestHistory(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
-		documents func() map[string][]*Document
+		documents func() []*Document
 	}
 
 	put1Attrs := Attributes{"score": 100}
@@ -1337,17 +1319,15 @@ func TestHistory(t *testing.T) {
 	// 1 initial put
 	aDocsSinglePut := fixtures{
 		name: "single put, no end",
-		documents: func() map[string][]*Document {
-			return map[string][]*Document{
-				"A": {
-					{
-						ID:             "A",
-						TxTimeStart:    t1,
-						TxTimeEnd:      nil,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   nil,
-						Attributes:     put1Attrs,
-					},
+		documents: func() []*Document {
+			return []*Document{
+				{
+					ID:             "A",
+					TxTimeStart:    t1,
+					TxTimeEnd:      nil,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   nil,
+					Attributes:     put1Attrs,
 				},
 			}
 		},
@@ -1355,17 +1335,15 @@ func TestHistory(t *testing.T) {
 	// 1 initial put with a valid time end
 	aDocsSinglePutWithEnd := fixtures{
 		name: "single put, with end",
-		documents: func() map[string][]*Document {
-			return map[string][]*Document{
-				"A": {
-					{
-						ID:             "A",
-						TxTimeStart:    t1,
-						TxTimeEnd:      nil,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   &t3,
-						Attributes:     put1Attrs,
-					},
+		documents: func() []*Document {
+			return []*Document{
+				{
+					ID:             "A",
+					TxTimeStart:    t1,
+					TxTimeEnd:      nil,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   &t3,
+					Attributes:     put1Attrs,
 				},
 			}
 		},
@@ -1374,58 +1352,54 @@ func TestHistory(t *testing.T) {
 	// // this sets a TxTimeEnd for the initial record and creates 2 new ones
 	aDocsUpdated := fixtures{
 		name: "initial put, and then put with later valid time",
-		documents: func() map[string][]*Document {
-			return map[string][]*Document{
-				"A": {
-					{
-						ID:             "A",
-						TxTimeStart:    t1,
-						TxTimeEnd:      &t3,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   nil,
-						Attributes:     put1Attrs,
-					},
-					{
-						ID:             "A",
-						TxTimeStart:    t3,
-						TxTimeEnd:      nil,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   &t3,
-						Attributes:     put1Attrs,
-					},
-					{
-						ID:             "A",
-						TxTimeStart:    t3,
-						TxTimeEnd:      nil,
-						ValidTimeStart: t3,
-						ValidTimeEnd:   nil,
-						Attributes:     put2Attrs,
-					},
+		documents: func() []*Document {
+			return []*Document{
+				{
+					ID:             "A",
+					TxTimeStart:    t1,
+					TxTimeEnd:      &t3,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   nil,
+					Attributes:     put1Attrs,
+				},
+				{
+					ID:             "A",
+					TxTimeStart:    t3,
+					TxTimeEnd:      nil,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   &t3,
+					Attributes:     put1Attrs,
+				},
+				{
+					ID:             "A",
+					TxTimeStart:    t3,
+					TxTimeEnd:      nil,
+					ValidTimeStart: t3,
+					ValidTimeEnd:   nil,
+					Attributes:     put2Attrs,
 				},
 			}
 		},
 	}
 	aDocsDeleted := fixtures{
 		name: "initial put, and then deletion with later valid time",
-		documents: func() map[string][]*Document {
-			return map[string][]*Document{
-				"A": {
-					{
-						ID:             "A",
-						TxTimeStart:    t1,
-						TxTimeEnd:      &t3,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   nil,
-						Attributes:     put1Attrs,
-					},
-					{
-						ID:             "A",
-						TxTimeStart:    t3,
-						TxTimeEnd:      nil,
-						ValidTimeStart: t1,
-						ValidTimeEnd:   &t3,
-						Attributes:     put1Attrs,
-					},
+		documents: func() []*Document {
+			return []*Document{
+				{
+					ID:             "A",
+					TxTimeStart:    t1,
+					TxTimeEnd:      &t3,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   nil,
+					Attributes:     put1Attrs,
+				},
+				{
+					ID:             "A",
+					TxTimeStart:    t3,
+					TxTimeEnd:      nil,
+					ValidTimeStart: t1,
+					ValidTimeEnd:   &t3,
+					Attributes:     put1Attrs,
 				},
 			}
 		},
@@ -1446,7 +1420,7 @@ func TestHistory(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name:      "empty db",
-				documents: func() map[string][]*Document { return nil },
+				documents: func() []*Document { return nil },
 			},
 			testCases: []testCase{
 				{
@@ -1559,25 +1533,23 @@ func TestHistory(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "version has later transaction time start, but earlier transaction time end",
-				documents: func() map[string][]*Document {
-					return map[string][]*Document{
-						"A": {
-							{
-								ID:             "A",
-								TxTimeStart:    t2,
-								TxTimeEnd:      &t3,
-								ValidTimeStart: t3,
-								ValidTimeEnd:   &t4,
-								Attributes:     put1Attrs,
-							},
-							{
-								ID:             "A",
-								TxTimeStart:    t1,
-								TxTimeEnd:      nil,
-								ValidTimeStart: t1,
-								ValidTimeEnd:   &t2,
-								Attributes:     put2Attrs,
-							},
+				documents: func() []*Document {
+					return []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t2,
+							TxTimeEnd:      &t3,
+							ValidTimeStart: t3,
+							ValidTimeEnd:   &t4,
+							Attributes:     put1Attrs,
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t2,
+							Attributes:     put2Attrs,
 						},
 					}
 				},
@@ -1610,25 +1582,23 @@ func TestHistory(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "multiple versions have nil end transaction time",
-				documents: func() map[string][]*Document {
-					return map[string][]*Document{
-						"A": {
-							{
-								ID:             "A",
-								TxTimeStart:    t1,
-								TxTimeEnd:      nil,
-								ValidTimeStart: t1,
-								ValidTimeEnd:   &t2,
-								Attributes:     put2Attrs,
-							},
-							{
-								ID:             "A",
-								TxTimeStart:    t2,
-								TxTimeEnd:      nil,
-								ValidTimeStart: t3,
-								ValidTimeEnd:   &t4,
-								Attributes:     put1Attrs,
-							},
+				documents: func() []*Document {
+					return []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t2,
+							Attributes:     put2Attrs,
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t2,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t3,
+							ValidTimeEnd:   &t4,
+							Attributes:     put1Attrs,
 						},
 					}
 				},
@@ -1664,7 +1634,8 @@ func TestHistory(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db := memory.NewDB(s.fixtures.documents())
+				db, err := memory.NewDB(s.fixtures.documents())
+				require.Nil(t, err)
 				ret, err := db.History(tC.id)
 				if tC.expectErrNotFound {
 					require.ErrorIs(t, err, ErrNotFound)

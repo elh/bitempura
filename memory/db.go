@@ -12,12 +12,17 @@ import (
 var _ bt.DB = (*DB)(nil)
 
 // NewDB constructs a in-memory bitemporal DB.
-// It may optionally be seeded with documents and transaction time may be controlled with SetNow.
-func NewDB(documents map[string][]*bt.Document) *DB {
-	if documents == nil {
-		documents = map[string][]*bt.Document{}
+// It may optionally be seeded with document versions and transaction time may be controlled with SetNow.
+func NewDB(documents []*bt.Document) (*DB, error) {
+	dMap := map[string][]*bt.Document{}
+	for _, d := range documents {
+		if err := d.Validate(); err != nil {
+			return nil, err
+		}
+		dMap[d.ID] = append(dMap[d.ID], d)
 	}
-	return &DB{documents: documents}
+	// TODO: validate no overlap
+	return &DB{documents: dMap}, nil
 }
 
 type DB struct {

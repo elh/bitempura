@@ -19,7 +19,8 @@ import (
 // > the investigator will step through this sequence to monitor a set of suspects. These events will arrive in an
 // > undetermined chronological order based on how and when each checkpoint is able to manually relay the information.
 func TestTXDBCrimeInvestigationExample(t *testing.T) {
-	db := memory.NewDB(nil)
+	db, err := memory.NewDB(nil)
+	require.Nil(t, err)
 
 	// -------------------- Day 0 --------------------
 	// The first document shows that Person 2 was recorded entering via :SFO and the second document shows that Person 3
@@ -299,7 +300,8 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 // see https://robinhood.engineering/tracking-temporal-data-at-robinhood-b62291644a31
 // > At Robinhood, accounting is a central part of our business...
 func TestRobinhoodExample(t *testing.T) {
-	db := memory.NewDB(nil)
+	db, err := memory.NewDB(nil)
+	require.Nil(t, err)
 
 	// Say you deposit $100 in your account on 3/14.
 	mar14 := mustParseTime(shortForm, "2021-03-14")
