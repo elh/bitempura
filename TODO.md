@@ -1,5 +1,5 @@
 ## TODO:
-- [x] [API v1 done](https://github.com/elh/bitempura/blob/main/db.go). [In memory implementation](https://github.com/elh/bitempura/blob/main/memory/db.go)
+- [x] [API v1 done](https://github.com/elh/bitempura/blob/main/db.go). [In-memory implementation](https://github.com/elh/bitempura/blob/main/memory/db.go)
     - [x] Find
     - [x] List
     - [x] Put
