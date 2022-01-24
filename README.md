@@ -23,4 +23,6 @@ type DB interface {
 }
 ```
 
-see [TODO](https://github.com/elh/bitemporal/blob/main/TODO.md)
+See working [in memory reference implementation](https://github.com/elh/bitemporal/blob/main/memory/db.go)
+
+See [TODO](https://github.com/elh/bitemporal/blob/main/TODO.md)
