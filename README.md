@@ -1,5 +1,9 @@
 # bitemporal ⌛
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/elh/bitemporal.svg)](https://pkg.go.dev/github.com/elh/bitemporal)
+[![Build Status](https://github.com/elh/bitemporal/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/elh/bitemporal/actions/workflows/go.yml?query=branch%3Amain)
+
+
 Building intuition about [bitemporal databases](https://en.wikipedia.org/wiki/Bitemporal_Modeling) by building one for myself.
 
 * Initial DB API is inspired by XTDB (and Datomic).
