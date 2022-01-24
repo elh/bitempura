@@ -12,12 +12,22 @@ import (
 var _ bt.DB = (*DB)(nil)
 
 // NewDB constructs a in-memory bitemporal DB.
-// It may optionally be seeded with documents and transaction time may be controlled with SetNow.
-func NewDB(documents map[string][]*bt.Document) *DB {
-	if documents == nil {
-		documents = map[string][]*bt.Document{}
+//
+// The database may optionally constructed with Document "versions". No two Documents for the same id may overlap both
+// transaction time and valid time. Transaction times used by the database which normally default to now may be
+// controlled with SetNow.
+func NewDB(documents []*bt.Document) (*DB, error) {
+	db := &DB{documents: map[string][]*bt.Document{}}
+	for _, d := range documents {
+		if err := d.Validate(); err != nil {
+			return nil, err
+		}
+		if err := db.assertNoOverlap(d, db.documents[d.ID]); err != nil {
+			return nil, err
+		}
+		db.documents[d.ID] = append(db.documents[d.ID], d)
 	}
-	return &DB{documents: documents}
+	return db, nil
 }
 
 type DB struct {
@@ -113,6 +123,9 @@ func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.W
 				if err := overhangDoc.Validate(); err != nil {
 					return err
 				}
+				if err := db.assertNoOverlap(overhangDoc, db.documents[id]); err != nil {
+					return err
+				}
 				db.documents[id] = append(db.documents[id], overhangDoc)
 			}
 		}
@@ -131,6 +144,9 @@ func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.W
 		if err := newDoc.Validate(); err != nil {
 			return err
 		}
+		if err := db.assertNoOverlap(newDoc, db.documents[id]); err != nil {
+			return err
+		}
 		db.documents[id] = append(db.documents[id], newDoc)
 	}
 
@@ -139,7 +155,7 @@ func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.W
 
 func (db *DB) handleWriteOpts(opts []bt.WriteOpt) (options *bt.WriteOptions, now time.Time, err error) {
 	// gut check to prevent invalid tx times due to testing overrides
-	if err := db.validateNow(); err != nil {
+	if err := db.assertValidNow(); err != nil {
 		return nil, time.Time{}, err
 	}
 
@@ -251,6 +267,18 @@ func (db *DB) hasOverlap(x, y timeRange) (hasOverlap bool, yOverhangs []timeRang
 	return hasOverlap, yOverhangs
 }
 
+// when updating version records, ensure we do not create ambiguous overlap
+func (db *DB) assertNoOverlap(candidate *bt.Document, xs []*bt.Document) error {
+	for _, x := range xs {
+		txTimeOverlaps, _ := db.hasOverlap(timeRange{candidate.TxTimeStart, candidate.TxTimeEnd}, timeRange{x.TxTimeStart, x.TxTimeEnd})
+		validTimeOverlaps, _ := db.hasOverlap(timeRange{candidate.ValidTimeStart, candidate.ValidTimeEnd}, timeRange{x.ValidTimeStart, x.ValidTimeEnd})
+		if txTimeOverlaps && validTimeOverlaps {
+			return fmt.Errorf("document versions overlap tx time and valid time")
+		}
+	}
+	return nil
+}
+
 // for testing
 
 // SetNow overrides "now" used by the DB for transaction times. By default, db uses time.Now()
@@ -267,7 +295,7 @@ func (db *DB) getNow() time.Time {
 }
 
 // when doing a new write, ensure that "now" is monotonically increasing for all transaction times in db.
-func (db *DB) validateNow() error {
+func (db *DB) assertValidNow() error {
 	var latestInDB time.Time
 	for _, versions := range db.documents {
 		for _, v := range versions {
