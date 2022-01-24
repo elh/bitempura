@@ -15,7 +15,7 @@ var _ bt.DB = (*DB)(nil)
 //
 // The database may optionally be seeded with Document "versions". No two Documents for the same id may overlap both
 // transaction time and valid time. Transaction times (which normally default to now) may be controlled with SetNow.
-func NewDB(documents []*bt.Document) (*DB, error) {
+func NewDB(documents ...*bt.Document) (*DB, error) {
 	db := &DB{documents: map[string][]*bt.Document{}}
 	for _, d := range documents {
 		if err := d.Validate(); err != nil {

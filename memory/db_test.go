@@ -166,7 +166,7 @@ func TestConstructor(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				_, err := memory.NewDB(s.fixtures.documents())
+				_, err := memory.NewDB(s.fixtures.documents()...)
 				if tC.expectErr {
 					require.NotNil(t, err)
 					return
@@ -438,7 +438,7 @@ func TestFind(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.documents())
+				db, err := memory.NewDB(s.fixtures.documents()...)
 				require.Nil(t, err)
 				ret, err := db.Find(tC.id, tC.readOpts...)
 				if tC.expectErrNotFound {
@@ -580,7 +580,7 @@ func TestList(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.documents())
+				db, err := memory.NewDB(s.fixtures.documents()...)
 				require.Nil(t, err)
 				ret, err := db.List(tC.readOpts...)
 				if tC.expectErr {
@@ -1060,7 +1060,7 @@ func TestPut(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.documents())
+				db, err := memory.NewDB(s.fixtures.documents()...)
 				require.Nil(t, err)
 				if tC.now != nil {
 					db.SetNow(*tC.now)
@@ -1416,7 +1416,7 @@ func TestDelete(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.documents())
+				db, err := memory.NewDB(s.fixtures.documents()...)
 				require.Nil(t, err)
 				if tC.now != nil {
 					db.SetNow(*tC.now)
@@ -1769,7 +1769,7 @@ func TestHistory(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.documents())
+				db, err := memory.NewDB(s.fixtures.documents()...)
 				require.Nil(t, err)
 				ret, err := db.History(tC.id)
 				if tC.expectErrNotFound {
