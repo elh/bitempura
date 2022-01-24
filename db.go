@@ -6,9 +6,9 @@ import (
 
 // DB for bitemporal data.
 //
-// Temporal control options
-// On writes: WithValidTime, WithEndValidTime
-// On reads: AsOfValidTime, AsOfTransactionTime
+// Temporal control options.
+// On writes: WithValidTime, WithEndValidTime.
+// On reads: AsOfValidTime, AsOfTransactionTime.
 type DB interface {
 	// Find document by id as of specified times.
 	Find(id string, opts ...ReadOpt) (*Document, error)
@@ -18,6 +18,9 @@ type DB interface {
 	Put(id string, attributes Attributes, opts ...WriteOpt) error
 	// Delete removes attributes with optional configured valid times.
 	Delete(id string, opts ...WriteOpt) error
+
+	// History returns versions by descending end transaction time, descending end valid time
+	History(id string) ([]*Document, error)
 }
 
 type WriteOptions struct {

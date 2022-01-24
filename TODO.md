@@ -6,7 +6,7 @@
     - [x] Delete
 - [x] [XTDB, Robinhood example tests pass](https://github.com/elh/bitemporal/blob/main/memory/db_examples_test.go)
 - [x] Split out in-memory implementation
-- [ ] History API?
+- [x] History API?
 - [ ] Separate "db" and "storage" models. first pass was blending XTDB APIs with Snodgrass style records and things are getting muddled.
     - Storage layer will inform choices for querying ability at DB layer.
 - [ ] Should data read and write APIs return tx time and valid time context at all?

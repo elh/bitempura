@@ -49,12 +49,8 @@ func TestFind(t *testing.T) {
 		documents func() map[string][]*Document
 	}
 
-	put1Attrs := Attributes{
-		"score": 100,
-	}
-	put2Attrs := Attributes{
-		"score": 200,
-	}
+	put1Attrs := Attributes{"score": 100}
+	put2Attrs := Attributes{"score": 200}
 	// 1 initial put
 	aDocsSinglePut := fixtures{
 		name: "single put, no end",
@@ -481,8 +477,10 @@ func TestList(t *testing.T) {
 }
 
 func sortDocumentsByID(ds []*Document) []*Document {
-	sort.Slice(ds, func(i, j int) bool { return ds[i].ID < ds[j].ID })
-	return ds
+	out := make([]*Document, len(ds))
+	copy(out, ds)
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out
 }
 
 func TestPut(t *testing.T) {
@@ -1036,12 +1034,6 @@ func TestDelete(t *testing.T) {
 			},
 			testCases: []testCase{
 				{
-					desc:      "error if id not set",
-					now:       &t2,
-					id:        "",
-					expectErr: true,
-				},
-				{
 					desc:      "error if end valid time before valid time",
 					now:       &t2,
 					id:        "A",
@@ -1328,6 +1320,362 @@ func TestDelete(t *testing.T) {
 					require.Nil(t, err)
 					assert.Equal(t, findCheck.expectDocument, ret)
 				}
+			})
+		}
+	}
+}
+
+func TestHistory(t *testing.T) {
+	type fixtures struct {
+		name string
+		// make sure structs isolated between tests while doing in-mem mutations
+		documents func() map[string][]*Document
+	}
+
+	put1Attrs := Attributes{"score": 100}
+	put2Attrs := Attributes{"score": 200}
+	// 1 initial put
+	aDocsSinglePut := fixtures{
+		name: "single put, no end",
+		documents: func() map[string][]*Document {
+			return map[string][]*Document{
+				"A": {
+					{
+						ID:             "A",
+						TxTimeStart:    t1,
+						TxTimeEnd:      nil,
+						ValidTimeStart: t1,
+						ValidTimeEnd:   nil,
+						Attributes:     put1Attrs,
+					},
+				},
+			}
+		},
+	}
+	// 1 initial put with a valid time end
+	aDocsSinglePutWithEnd := fixtures{
+		name: "single put, with end",
+		documents: func() map[string][]*Document {
+			return map[string][]*Document{
+				"A": {
+					{
+						ID:             "A",
+						TxTimeStart:    t1,
+						TxTimeEnd:      nil,
+						ValidTimeStart: t1,
+						ValidTimeEnd:   &t3,
+						Attributes:     put1Attrs,
+					},
+				},
+			}
+		},
+	}
+	// // 1 initial put and 1 put with later valid time updating score
+	// // this sets a TxTimeEnd for the initial record and creates 2 new ones
+	aDocsUpdated := fixtures{
+		name: "initial put, and then put with later valid time",
+		documents: func() map[string][]*Document {
+			return map[string][]*Document{
+				"A": {
+					{
+						ID:             "A",
+						TxTimeStart:    t1,
+						TxTimeEnd:      &t3,
+						ValidTimeStart: t1,
+						ValidTimeEnd:   nil,
+						Attributes:     put1Attrs,
+					},
+					{
+						ID:             "A",
+						TxTimeStart:    t3,
+						TxTimeEnd:      nil,
+						ValidTimeStart: t1,
+						ValidTimeEnd:   &t3,
+						Attributes:     put1Attrs,
+					},
+					{
+						ID:             "A",
+						TxTimeStart:    t3,
+						TxTimeEnd:      nil,
+						ValidTimeStart: t3,
+						ValidTimeEnd:   nil,
+						Attributes:     put2Attrs,
+					},
+				},
+			}
+		},
+	}
+	aDocsDeleted := fixtures{
+		name: "initial put, and then deletion with later valid time",
+		documents: func() map[string][]*Document {
+			return map[string][]*Document{
+				"A": {
+					{
+						ID:             "A",
+						TxTimeStart:    t1,
+						TxTimeEnd:      &t3,
+						ValidTimeStart: t1,
+						ValidTimeEnd:   nil,
+						Attributes:     put1Attrs,
+					},
+					{
+						ID:             "A",
+						TxTimeStart:    t3,
+						TxTimeEnd:      nil,
+						ValidTimeStart: t1,
+						ValidTimeEnd:   &t3,
+						Attributes:     put1Attrs,
+					},
+				},
+			}
+		},
+	}
+
+	type testCase struct {
+		desc              string
+		id                string
+		expectErrNotFound bool
+		expectErr         bool // this is exclusive of ErrNotFound. this is for unexepcted errors
+		expectDocuments   []*Document
+	}
+
+	testCaseSets := []struct {
+		fixtures  fixtures
+		testCases []testCase
+	}{
+		{
+			fixtures: fixtures{
+				name:      "empty db",
+				documents: func() map[string][]*Document { return nil },
+			},
+			testCases: []testCase{
+				{
+					desc:              "not found",
+					id:                "A",
+					expectErrNotFound: true,
+				},
+			},
+		},
+		{
+			fixtures: aDocsSinglePut,
+			testCases: []testCase{
+				{
+					desc: "basic - return 1 version",
+					id:   "A",
+					expectDocuments: []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   nil,
+							Attributes:     put1Attrs,
+						},
+					},
+				},
+			},
+		},
+		{
+			fixtures: aDocsSinglePutWithEnd,
+			testCases: []testCase{
+				{
+					desc: "basic - return 1 version",
+					id:   "A",
+					expectDocuments: []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t3,
+							Attributes:     put1Attrs,
+						},
+					},
+				},
+			},
+		},
+		{
+			fixtures: aDocsUpdated,
+			testCases: []testCase{
+				{
+					desc: "return versions by descending end transaction time, descending end valid time",
+					id:   "A",
+					expectDocuments: []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t3,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t3,
+							ValidTimeEnd:   nil,
+							Attributes:     put2Attrs,
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t3,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t3,
+							Attributes:     put1Attrs,
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      &t3,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   nil,
+							Attributes:     put1Attrs,
+						},
+					},
+				},
+			},
+		},
+		{
+			fixtures: aDocsDeleted,
+			testCases: []testCase{
+				{
+					desc: "returns \"deleted\" versions",
+					id:   "A",
+					expectDocuments: []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t3,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t3,
+							Attributes:     put1Attrs,
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      &t3,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   nil,
+							Attributes:     put1Attrs,
+						},
+					},
+				},
+			},
+		},
+		{
+			fixtures: fixtures{
+				name: "version has later transaction time start, but earlier transaction time end",
+				documents: func() map[string][]*Document {
+					return map[string][]*Document{
+						"A": {
+							{
+								ID:             "A",
+								TxTimeStart:    t2,
+								TxTimeEnd:      &t3,
+								ValidTimeStart: t3,
+								ValidTimeEnd:   &t4,
+								Attributes:     put1Attrs,
+							},
+							{
+								ID:             "A",
+								TxTimeStart:    t1,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   &t2,
+								Attributes:     put2Attrs,
+							},
+						},
+					}
+				},
+			},
+			testCases: []testCase{
+				{
+					desc: "return versions by descending end transaction time, descending end valid time",
+					id:   "A",
+					expectDocuments: []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t2,
+							Attributes:     put2Attrs,
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t2,
+							TxTimeEnd:      &t3,
+							ValidTimeStart: t3,
+							ValidTimeEnd:   &t4,
+							Attributes:     put1Attrs,
+						},
+					},
+				},
+			},
+		},
+		{
+			fixtures: fixtures{
+				name: "multiple versions have nil end transaction time",
+				documents: func() map[string][]*Document {
+					return map[string][]*Document{
+						"A": {
+							{
+								ID:             "A",
+								TxTimeStart:    t1,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   &t2,
+								Attributes:     put2Attrs,
+							},
+							{
+								ID:             "A",
+								TxTimeStart:    t2,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t3,
+								ValidTimeEnd:   &t4,
+								Attributes:     put1Attrs,
+							},
+						},
+					}
+				},
+			},
+			testCases: []testCase{
+				{
+					desc: "return versions by descending end transaction time, descending end valid time",
+					id:   "A",
+					expectDocuments: []*Document{
+						{
+							ID:             "A",
+							TxTimeStart:    t2,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t3,
+							ValidTimeEnd:   &t4,
+							Attributes:     put1Attrs,
+						},
+						{
+							ID:             "A",
+							TxTimeStart:    t1,
+							TxTimeEnd:      nil,
+							ValidTimeStart: t1,
+							ValidTimeEnd:   &t2,
+							Attributes:     put2Attrs,
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, s := range testCaseSets {
+		s := s
+		for _, tC := range s.testCases {
+			tC := tC
+			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
+				db := memory.NewDB(s.fixtures.documents())
+				ret, err := db.History(tC.id)
+				if tC.expectErrNotFound {
+					require.ErrorIs(t, err, ErrNotFound)
+					return
+				} else if tC.expectErr {
+					require.NotErrorIs(t, err, ErrNotFound)
+					require.NotNil(t, err)
+					return
+				}
+				require.Nil(t, err)
+				assert.Equal(t, tC.expectDocuments, ret)
 			})
 		}
 	}
