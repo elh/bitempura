@@ -6,9 +6,9 @@ import (
 
 // DB for bitemporal data.
 //
-// Temporal control options
-// On writes: WithValidTime, WithEndValidTime
-// On reads: AsOfValidTime, AsOfTransactionTime
+// Temporal control options.
+// On writes: WithValidTime, WithEndValidTime.
+// On reads: AsOfValidTime, AsOfTransactionTime.
 type DB interface {
 	// Find document by id as of specified times.
 	Find(id string, opts ...ReadOpt) (*Document, error)
