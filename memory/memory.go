@@ -1,9 +1,11 @@
-package bitemporal
+package memory
 
 import (
 	"errors"
 	"fmt"
 	"time"
+
+	. "github.com/elh/bitemporal"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -36,7 +38,7 @@ func (db *memoryDB) Find(id string, opts ...ReadOpt) (*Document, error) {
 	if !ok {
 		return nil, ErrNotFound
 	}
-	return db.findVersionByTime(vs, options.validTime, options.txTime)
+	return db.findVersionByTime(vs, options.ValidTime, options.TxTime)
 }
 
 // List all data (as of optional valid and transaction times).
@@ -45,7 +47,7 @@ func (db *memoryDB) List(opts ...ReadOpt) ([]*Document, error) {
 
 	var ret []*Document
 	for _, vs := range db.documents {
-		v, err := db.findVersionByTime(vs, options.validTime, options.txTime)
+		v, err := db.findVersionByTime(vs, options.ValidTime, options.TxTime)
 		if errors.Is(err, ErrNotFound) {
 			continue
 		} else if err != nil {
@@ -82,7 +84,7 @@ func (db *memoryDB) updateRecords(id string, newAttributes Attributes, opts ...W
 
 	vs, ok := db.documents[id]
 	if ok {
-		overlappingVs, err := db.findOverlappingValidTimeVersions(vs, options.validTime, options.endValidTime, now)
+		overlappingVs, err := db.findOverlappingValidTimeVersions(vs, options.ValidTime, options.EndValidTime, now)
 		if err != nil {
 			return err
 		}
@@ -114,8 +116,8 @@ func (db *memoryDB) updateRecords(id string, newAttributes Attributes, opts ...W
 			ID:             id,
 			TxTimeStart:    now,
 			TxTimeEnd:      nil,
-			ValidTimeStart: options.validTime,
-			ValidTimeEnd:   options.endValidTime,
+			ValidTimeStart: options.ValidTime,
+			ValidTimeEnd:   options.EndValidTime,
 			Attributes:     newAttributes,
 		}
 		if err := newDoc.Validate(); err != nil {
@@ -127,34 +129,34 @@ func (db *memoryDB) updateRecords(id string, newAttributes Attributes, opts ...W
 	return nil
 }
 
-func (db *memoryDB) handleWriteOpts(opts []WriteOpt) (options *writeOptions, now time.Time, err error) {
+func (db *memoryDB) handleWriteOpts(opts []WriteOpt) (options *WriteOptions, now time.Time, err error) {
 	// gut check to prevent invalid tx times due to testing overrides
 	if err := db.validateNow(); err != nil {
 		return nil, time.Time{}, err
 	}
 
 	now = db.getNow()
-	options = &writeOptions{
-		validTime:    now,
-		endValidTime: nil,
+	options = &WriteOptions{
+		ValidTime:    now,
+		EndValidTime: nil,
 	}
 	for _, opt := range opts {
 		opt(options)
 	}
 
 	// validate write option times. this is relevant for Delete even if Put is validated at resource level
-	if options.endValidTime != nil && !options.endValidTime.After(options.validTime) {
+	if options.EndValidTime != nil && !options.EndValidTime.After(options.ValidTime) {
 		return nil, time.Time{}, errors.New("valid time start must be before end")
 	}
 
 	return options, now, nil
 }
 
-func (db *memoryDB) handleReadOpts(opts []ReadOpt) *readOptions {
+func (db *memoryDB) handleReadOpts(opts []ReadOpt) *ReadOptions {
 	now := db.getNow()
-	options := &readOptions{
-		validTime: now,
-		txTime:    now,
+	options := &ReadOptions{
+		ValidTime: now,
+		TxTime:    now,
 	}
 	for _, opt := range opts {
 		opt(options)

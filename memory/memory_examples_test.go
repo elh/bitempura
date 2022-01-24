@@ -1,9 +1,10 @@
-package bitemporal_test
+package memory_test
 
 import (
 	"testing"
 
 	. "github.com/elh/bitemporal"
+	. "github.com/elh/bitemporal/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
