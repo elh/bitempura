@@ -3,6 +3,7 @@ package memory
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	bt "github.com/elh/bitemporal"
@@ -26,9 +27,6 @@ type DB struct {
 
 // Find data by id (as of optional valid and transaction times).
 func (db *DB) Find(id string, opts ...bt.ReadOpt) (*bt.Document, error) {
-	if id == "" {
-		return nil, bt.ErrIDRequired
-	}
 	options := db.handleReadOpts(opts)
 
 	vs, ok := db.documents[id]
@@ -57,18 +55,31 @@ func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.Document, error) {
 
 // Put stores attributes (with optional start and end valid time).
 func (db *DB) Put(id string, attributes bt.Attributes, opts ...bt.WriteOpt) error {
-	if id == "" {
-		return bt.ErrIDRequired
-	}
 	return db.updateRecords(id, attributes, opts...)
 }
 
 // Delete removes attributes (with optional start and end valid time).
 func (db *DB) Delete(id string, opts ...bt.WriteOpt) error {
-	if id == "" {
-		return bt.ErrIDRequired
-	}
 	return db.updateRecords(id, nil, opts...)
+}
+
+// History returns versions by descending end transaction time, descending end valid time
+func (db *DB) History(id string) ([]*bt.Document, error) {
+	vs, ok := db.documents[id]
+	if !ok {
+		return nil, bt.ErrNotFound
+	}
+
+	out := make([]*bt.Document, len(vs))
+	copy(out, vs)
+	sort.Slice(out, func(i, j int) bool { // reversed. flip i and j
+		return (out[j].TxTimeEnd != nil && out[i].TxTimeEnd != nil && out[j].TxTimeEnd.Before(*out[i].TxTimeEnd)) ||
+			(out[j].TxTimeEnd != nil && out[i].TxTimeEnd == nil) ||
+			(out[j].TxTimeEnd == out[i].TxTimeEnd &&
+				(out[j].ValidTimeEnd != nil && out[i].ValidTimeEnd != nil && out[j].ValidTimeEnd.Before(*out[i].ValidTimeEnd)) ||
+				(out[j].ValidTimeEnd != nil && out[i].ValidTimeEnd == nil))
+	})
+	return out, nil
 }
 
 // common logic of Put and Delete. handling of existing records and "overhand" is the same. If newAttributes is nil,

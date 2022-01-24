@@ -24,6 +24,9 @@ type DB interface {
 	Put(id string, attributes Attributes, opts ...WriteOpt) error
 	// Delete removes attributes (with optional start and end valid time).
 	Delete(id string, opts ...WriteOpt) error
+
+	// History returns versions by descending end transaction time, descending end valid time
+	History(id string) ([]*Document, error)
 }
 ```
 
