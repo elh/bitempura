@@ -1,2 +1,3 @@
-// Package bitemporal contains experiments with bitemporal data
-package bitemporal
+// Package bitempura contains experiments with bitemporal data.
+// It defines an interface for bitemporal key-value databases.
+package bitempura

@@ -1,7 +1,7 @@
-# bitemporal ⌛
+# bitempura ⌛
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/elh/bitemporal.svg)](https://pkg.go.dev/github.com/elh/bitemporal)
-[![Build Status](https://github.com/elh/bitemporal/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/elh/bitemporal/actions/workflows/go.yml?query=branch%3Amain)
+[![Go Reference](https://pkg.go.dev/badge/github.com/elh/bitempura.svg)](https://pkg.go.dev/github.com/elh/bitempura)
+[![Build Status](https://github.com/elh/bitempura/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/elh/bitempura/actions/workflows/go.yml?query=branch%3Amain)
 
 Building intuition about [bitemporal databases](https://en.wikipedia.org/wiki/Bitemporal_Modeling) by building (a toy) one for myself.
 
@@ -27,7 +27,7 @@ versions, err := db.History("Bob/balance")
 
 Using a bitemporal database allows you to offload management of temporal application data (valid time) and data versions (transaction time) from your code and onto infrastructure. This provides a universal "time travel" capability across models in the database. Adopting bitemporality is proactive because by the time you realize you need to update (or have already updated) data, it may be too late. Context may already be lost or painful to reconstruct manually.
 
-See [in memory reference implementation](https://github.com/elh/bitemporal/blob/main/memory/db.go)
+See [in memory reference implementation](https://github.com/elh/bitempura/blob/main/memory/db.go)
 
 ### Design
 
@@ -55,4 +55,4 @@ type DB interface {
 }
 ```
 
-See [TODO](https://github.com/elh/bitemporal/blob/main/TODO.md)
+See [TODO](https://github.com/elh/bitempura/blob/main/TODO.md)

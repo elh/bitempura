@@ -1,4 +1,4 @@
-module github.com/elh/bitemporal
+module github.com/elh/bitempura
 
 go 1.17
 

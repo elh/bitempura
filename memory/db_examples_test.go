@@ -3,8 +3,8 @@ package memory_test
 import (
 	"testing"
 
-	. "github.com/elh/bitemporal"
-	"github.com/elh/bitemporal/memory"
+	. "github.com/elh/bitempura"
+	"github.com/elh/bitempura/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

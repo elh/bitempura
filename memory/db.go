@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	bt "github.com/elh/bitemporal"
+	bt "github.com/elh/bitempura"
 )
 
 var _ bt.DB = (*DB)(nil)
