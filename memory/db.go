@@ -13,9 +13,8 @@ var _ bt.DB = (*DB)(nil)
 
 // NewDB constructs a in-memory bitemporal DB.
 //
-// The database may optionally constructed with Document "versions". No two Documents for the same id may overlap both
-// transaction time and valid time. Transaction times used by the database which normally default to now may be
-// controlled with SetNow.
+// The database may optionally be seeded with Document "versions". No two Documents for the same id may overlap both
+// transaction time and valid time. Transaction times (which normally default to now) may be controlled with SetNow.
 func NewDB(documents []*bt.Document) (*DB, error) {
 	db := &DB{documents: map[string][]*bt.Document{}}
 	for _, d := range documents {
@@ -281,8 +280,8 @@ func (db *DB) assertNoOverlap(candidate *bt.Document, xs []*bt.Document) error {
 
 // for testing
 
-// SetNow overrides "now" used by the DB for transaction times. By default, db uses time.Now()
-// for transaction times. If SetNow used, "now" must be handled manually for all future uses of this db.
+// SetNow overrides "now" used by the DB for transaction times. By default, DB uses time.Now(). If SetNow is used,
+// the DB will stop defaulting to time.Now() for all future uses.
 func (db *DB) SetNow(t time.Time) {
 	db.now = &t
 }
