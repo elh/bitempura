@@ -8,7 +8,7 @@ import (
 	"time"
 
 	. "github.com/elh/bitemporal"
-	. "github.com/elh/bitemporal/memory"
+	"github.com/elh/bitemporal/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -315,7 +315,7 @@ func TestFind(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db := NewMemoryDB(s.fixtures.documents())
+				db := memory.NewDB(s.fixtures.documents())
 				ret, err := db.Find(tC.id, tC.readOpts...)
 				if tC.expectErrNotFound {
 					require.ErrorIs(t, err, ErrNotFound)
@@ -462,7 +462,7 @@ func TestList(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db := NewMemoryDB(s.fixtures.documents())
+				db := memory.NewDB(s.fixtures.documents())
 				ret, err := db.List(tC.readOpts...)
 				if tC.expectErr {
 					require.NotErrorIs(t, err, ErrNotFound)
@@ -943,7 +943,7 @@ func TestPut(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db := NewMemoryDB(s.fixtures.documents())
+				db := memory.NewDB(s.fixtures.documents())
 				if tC.now != nil {
 					db.SetNow(*tC.now)
 				}
@@ -1308,7 +1308,7 @@ func TestDelete(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db := NewMemoryDB(s.fixtures.documents())
+				db := memory.NewDB(s.fixtures.documents())
 				if tC.now != nil {
 					db.SetNow(*tC.now)
 				}

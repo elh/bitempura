@@ -8,27 +8,24 @@ import (
 	. "github.com/elh/bitemporal"
 )
 
-var ErrNotFound = errors.New("not found")
-var ErrIDRequired = errors.New("id is required")
+var _ DB = (*db)(nil)
 
-var _ DB = (*memoryDB)(nil)
-
-// NewMemoryDB constructs a in-memory bitemporal DB.
+// NewDB constructs a in-memory bitemporal DB.
 // It may optionally be seeded with documents and transaction time may be controlled with SetNow.
-func NewMemoryDB(documents map[string][]*Document) *memoryDB {
+func NewDB(documents map[string][]*Document) *db {
 	if documents == nil {
 		documents = map[string][]*Document{}
 	}
-	return &memoryDB{documents: documents}
+	return &db{documents: documents}
 }
 
-type memoryDB struct {
+type db struct {
 	now       *time.Time
 	documents map[string][]*Document // id -> all "versions" of the document
 }
 
 // Find data by id (as of optional valid and transaction times).
-func (db *memoryDB) Find(id string, opts ...ReadOpt) (*Document, error) {
+func (db *db) Find(id string, opts ...ReadOpt) (*Document, error) {
 	if id == "" {
 		return nil, ErrIDRequired
 	}
@@ -42,7 +39,7 @@ func (db *memoryDB) Find(id string, opts ...ReadOpt) (*Document, error) {
 }
 
 // List all data (as of optional valid and transaction times).
-func (db *memoryDB) List(opts ...ReadOpt) ([]*Document, error) {
+func (db *db) List(opts ...ReadOpt) ([]*Document, error) {
 	options := db.handleReadOpts(opts)
 
 	var ret []*Document
@@ -59,7 +56,7 @@ func (db *memoryDB) List(opts ...ReadOpt) ([]*Document, error) {
 }
 
 // Put stores attributes (with optional start and end valid time).
-func (db *memoryDB) Put(id string, attributes Attributes, opts ...WriteOpt) error {
+func (db *db) Put(id string, attributes Attributes, opts ...WriteOpt) error {
 	if id == "" {
 		return ErrIDRequired
 	}
@@ -67,7 +64,7 @@ func (db *memoryDB) Put(id string, attributes Attributes, opts ...WriteOpt) erro
 }
 
 // Delete removes attributes (with optional start and end valid time).
-func (db *memoryDB) Delete(id string, opts ...WriteOpt) error {
+func (db *db) Delete(id string, opts ...WriteOpt) error {
 	if id == "" {
 		return ErrIDRequired
 	}
@@ -76,7 +73,7 @@ func (db *memoryDB) Delete(id string, opts ...WriteOpt) error {
 
 // common logic of Put and Delete. handling of existing records and "overhand" is the same. If newAttributes is nil,
 // none is created (Delete case).
-func (db *memoryDB) updateRecords(id string, newAttributes Attributes, opts ...WriteOpt) error {
+func (db *db) updateRecords(id string, newAttributes Attributes, opts ...WriteOpt) error {
 	options, now, err := db.handleWriteOpts(opts)
 	if err != nil {
 		return err
@@ -129,7 +126,7 @@ func (db *memoryDB) updateRecords(id string, newAttributes Attributes, opts ...W
 	return nil
 }
 
-func (db *memoryDB) handleWriteOpts(opts []WriteOpt) (options *WriteOptions, now time.Time, err error) {
+func (db *db) handleWriteOpts(opts []WriteOpt) (options *WriteOptions, now time.Time, err error) {
 	// gut check to prevent invalid tx times due to testing overrides
 	if err := db.validateNow(); err != nil {
 		return nil, time.Time{}, err
@@ -152,7 +149,7 @@ func (db *memoryDB) handleWriteOpts(opts []WriteOpt) (options *WriteOptions, now
 	return options, now, nil
 }
 
-func (db *memoryDB) handleReadOpts(opts []ReadOpt) *ReadOptions {
+func (db *db) handleReadOpts(opts []ReadOpt) *ReadOptions {
 	now := db.getNow()
 	options := &ReadOptions{
 		ValidTime: now,
@@ -169,7 +166,7 @@ func (db *memoryDB) handleReadOpts(opts []ReadOpt) *ReadOptions {
 
 // if no match, return ErrNotFound
 // if more than 1 possible match, return error
-func (db *memoryDB) findVersionByTime(vs []*Document, validTime, txTime time.Time) (*Document, error) {
+func (db *db) findVersionByTime(vs []*Document, validTime, txTime time.Time) (*Document, error) {
 	var out *Document
 	for _, v := range vs {
 		if db.isInRange(validTime, timeRange{v.ValidTimeStart, v.ValidTimeEnd}) &&
@@ -191,7 +188,7 @@ type overlappingVersion struct {
 	overhangs []timeRange
 }
 
-func (db *memoryDB) findOverlappingValidTimeVersions(vs []*Document, validTimeStart time.Time, validTimeEnd *time.Time, txTime time.Time) ([]overlappingVersion, error) {
+func (db *db) findOverlappingValidTimeVersions(vs []*Document, validTimeStart time.Time, validTimeEnd *time.Time, txTime time.Time) ([]overlappingVersion, error) {
 	var out []overlappingVersion
 	for _, v := range vs {
 		if !db.isInRange(txTime, timeRange{v.TxTimeStart, v.TxTimeEnd}) {
@@ -216,7 +213,7 @@ type timeRange struct {
 	end   *time.Time
 }
 
-func (db *memoryDB) isInRange(t time.Time, r timeRange) bool {
+func (db *db) isInRange(t time.Time, r timeRange) bool {
 	return (t.Equal(r.start) || t.After(r.start)) && (r.end == nil || t.Before(*r.end))
 }
 
@@ -228,7 +225,7 @@ func (db *memoryDB) isInRange(t time.Time, r timeRange) bool {
 //     hasOverlap(|10,20|, |15,30|) -> yOverhangs: [|20,30|]
 //     hasOverlap(|10,20|, |15,20|) -> yOverhangs: []
 //     hasOverlap(|10,20|, |12,13|) -> yOverhangs: []
-func (db *memoryDB) hasOverlap(x, y timeRange) (hasOverlap bool, yOverhangs []timeRange) {
+func (db *db) hasOverlap(x, y timeRange) (hasOverlap bool, yOverhangs []timeRange) {
 	hasOverlap = (y.end == nil || x.start.Before(*y.end)) && (x.end == nil || y.start.Before(*x.end))
 	if hasOverlap {
 		// come up with fancier interval math here
@@ -245,13 +242,13 @@ func (db *memoryDB) hasOverlap(x, y timeRange) (hasOverlap bool, yOverhangs []ti
 
 // for testing
 
-// SetNow overrides "now" used by the DB for transaction times. By default, memoryDB uses time.Now()
+// SetNow overrides "now" used by the DB for transaction times. By default, db uses time.Now()
 // for transaction times. If SetNow used, "now" must be handled manually for all future uses of this db.
-func (db *memoryDB) SetNow(t time.Time) {
+func (db *db) SetNow(t time.Time) {
 	db.now = &t
 }
 
-func (db *memoryDB) getNow() time.Time {
+func (db *db) getNow() time.Time {
 	if db.now != nil {
 		return *db.now
 	}
@@ -259,7 +256,7 @@ func (db *memoryDB) getNow() time.Time {
 }
 
 // when doing a new write, ensure that "now" is monotonically increasing for all transaction times in db.
-func (db *memoryDB) validateNow() error {
+func (db *db) validateNow() error {
 	var latestInDB time.Time
 	for _, versions := range db.documents {
 		for _, v := range versions {
