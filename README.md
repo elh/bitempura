@@ -52,32 +52,36 @@ Using a bitemporal database allows you to offload management of temporal applica
 // DB for bitemporal data.
 //
 // Temporal control options.
-// On writes: WithValidTime, WithEndValidTime.
-// On reads: AsOfValidTime, AsOfTransactionTime.
+// ReadOpt's: AsOfValidTime, AsOfTransactionTime.
+// WriteOpt's: WithValidTime, WithEndValidTime.
 type DB interface {
 	// Get data by key (as of optional valid and transaction times).
-	Get(key string, opts ...ReadOpt) (*VersionedValue, error)
+	Get(key string, opts ...ReadOpt) (*VersionedKV, error)
 	// List all data (as of optional valid and transaction times).
-	List(opts ...ReadOpt) ([]*VersionedValue, error)
+	List(opts ...ReadOpt) ([]*VersionedKV, error)
 	// Set stores value (with optional start and end valid time).
 	Set(key string, value Value, opts ...WriteOpt) error
 	// Delete removes value (with optional start and end valid time).
 	Delete(key string, opts ...WriteOpt) error
 
-	// History returns versions by descending end transaction time, descending end valid time
-	History(key string) ([]*VersionedValue, error)
+	// History returns all versioned key-values for key by descending end transaction time, descending end valid time.
+	History(key string) ([]*VersionedKV, error)
 }
 
-// VersionedValue is the core data type. Transaction and valid time starts are inclusive and ends are exclusive
-type VersionedValue struct {
+// VersionedKV is a transaction time and valid time versioned key-value. Transaction and valid time starts are inclusive
+// and ends are exclusive. No two VersionedKVs for the same key can overlap both transaction time and valid time.
+type VersionedKV struct {
 	Key   string
 	Value Value
 
-	TxTimeStart    time.Time
-	TxTimeEnd      *time.Time
-	ValidTimeStart time.Time
-	ValidTimeEnd   *time.Time
+	TxTimeStart    time.Time  // inclusive
+	TxTimeEnd      *time.Time // exclusive
+	ValidTimeStart time.Time  // inclusive
+	ValidTimeEnd   *time.Time // exclusive
 }
+
+// Value is the user-controlled data associated with a key (and valid and transaction time information) in the database.
+type Value interface{}
 ```
 
 <br />

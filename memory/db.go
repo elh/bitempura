@@ -13,33 +13,33 @@ var _ bt.DB = (*DB)(nil)
 
 // NewDB constructs a in-memory bitemporal DB.
 //
-// The database may optionally be seeded with "versioned value" records. No two records for the same key may overlap
+// The database may optionally be seeded with "versioned key-value" records. No two records for the same key may overlap
 // both transaction time and valid time. Transaction times (which normally default to now) may optionally be controlled
 // with SetNow.
-func NewDB(versionedValues ...*bt.VersionedValue) (*DB, error) {
-	db := &DB{vValues: map[string][]*bt.VersionedValue{}}
-	for _, v := range versionedValues {
-		if err := v.Validate(); err != nil {
+func NewDB(versionedKVs ...*bt.VersionedKV) (*DB, error) {
+	db := &DB{vKVs: map[string][]*bt.VersionedKV{}}
+	for _, kv := range versionedKVs {
+		if err := kv.Validate(); err != nil {
 			return nil, err
 		}
-		if err := db.assertNoOverlap(v, db.vValues[v.Key]); err != nil {
+		if err := db.assertNoOverlap(kv, db.vKVs[kv.Key]); err != nil {
 			return nil, err
 		}
-		db.vValues[v.Key] = append(db.vValues[v.Key], v)
+		db.vKVs[kv.Key] = append(db.vKVs[kv.Key], kv)
 	}
 	return db, nil
 }
 
 type DB struct {
-	now     *time.Time
-	vValues map[string][]*bt.VersionedValue // key -> all versioned values with the key
+	now  *time.Time
+	vKVs map[string][]*bt.VersionedKV // key -> all versioned key-values with the key
 }
 
 // Get data by key (as of optional valid and transaction times).
-func (db *DB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedValue, error) {
+func (db *DB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) {
 	options := db.handleReadOpts(opts)
 
-	vs, ok := db.vValues[key]
+	vs, ok := db.vKVs[key]
 	if !ok {
 		return nil, bt.ErrNotFound
 	}
@@ -47,11 +47,11 @@ func (db *DB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedValue, error) {
 }
 
 // List all data (as of optional valid and transaction times).
-func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.VersionedValue, error) {
+func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
 	options := db.handleReadOpts(opts)
 
-	var ret []*bt.VersionedValue
-	for _, vs := range db.vValues {
+	var ret []*bt.VersionedKV
+	for _, vs := range db.vKVs {
 		v, err := db.findVersionByTime(vs, options.ValidTime, options.TxTime)
 		if errors.Is(err, bt.ErrNotFound) {
 			continue
@@ -74,13 +74,13 @@ func (db *DB) Delete(key string, opts ...bt.WriteOpt) error {
 }
 
 // History returns versions by descending end transaction time, descending end valid time
-func (db *DB) History(key string) ([]*bt.VersionedValue, error) {
-	vs, ok := db.vValues[key]
+func (db *DB) History(key string) ([]*bt.VersionedKV, error) {
+	vs, ok := db.vKVs[key]
 	if !ok {
 		return nil, bt.ErrNotFound
 	}
 
-	out := make([]*bt.VersionedValue, len(vs))
+	out := make([]*bt.VersionedKV, len(vs))
 	copy(out, vs)
 	sort.Slice(out, func(i, j int) bool { // reversed. flip i and j
 		return (out[j].TxTimeEnd != nil && out[i].TxTimeEnd != nil && out[j].TxTimeEnd.Before(*out[i].TxTimeEnd)) ||
@@ -93,14 +93,14 @@ func (db *DB) History(key string) ([]*bt.VersionedValue, error) {
 }
 
 // Common logic of Set and Delete. Handling of existing records and "overhand" is the same. If for Delete, do not create
-// new VersionedValue.
+// new VersionedKV.
 func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.WriteOpt) error {
 	options, now, err := db.handleWriteOpts(opts)
 	if err != nil {
 		return err
 	}
 
-	vs, ok := db.vValues[key]
+	vs, ok := db.vKVs[key]
 	if ok {
 		overlappingVs, err := db.findOverlappingValidTimeVersions(vs, options.ValidTime, options.EndValidTime, now)
 		if err != nil {
@@ -112,7 +112,7 @@ func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.Write
 			overlappingV.v.TxTimeEnd = &now
 
 			for _, overhang := range overlappingV.overhangs {
-				overhangV := &bt.VersionedValue{
+				overhangV := &bt.VersionedKV{
 					Key:            key,
 					Value:          overlappingV.v.Value,
 					TxTimeStart:    now,
@@ -123,17 +123,17 @@ func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.Write
 				if err := overhangV.Validate(); err != nil {
 					return err
 				}
-				if err := db.assertNoOverlap(overhangV, db.vValues[key]); err != nil {
+				if err := db.assertNoOverlap(overhangV, db.vKVs[key]); err != nil {
 					return err
 				}
-				db.vValues[key] = append(db.vValues[key], overhangV)
+				db.vKVs[key] = append(db.vKVs[key], overhangV)
 			}
 		}
 	}
 
 	// add value for Set API, add nothing for Delete API
 	if !isDelete {
-		newV := &bt.VersionedValue{
+		newV := &bt.VersionedKV{
 			Key:            key,
 			Value:          value,
 			TxTimeStart:    now,
@@ -144,10 +144,10 @@ func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.Write
 		if err := newV.Validate(); err != nil {
 			return err
 		}
-		if err := db.assertNoOverlap(newV, db.vValues[key]); err != nil {
+		if err := db.assertNoOverlap(newV, db.vKVs[key]); err != nil {
 			return err
 		}
-		db.vValues[key] = append(db.vValues[key], newV)
+		db.vKVs[key] = append(db.vKVs[key], newV)
 	}
 
 	return nil
@@ -193,8 +193,8 @@ func (db *DB) handleReadOpts(opts []bt.ReadOpt) *bt.ReadOptions {
 
 // if no match, return ErrNotFound
 // if more than 1 possible match, return error
-func (db *DB) findVersionByTime(vs []*bt.VersionedValue, validTime, txTime time.Time) (*bt.VersionedValue, error) {
-	var out *bt.VersionedValue
+func (db *DB) findVersionByTime(vs []*bt.VersionedKV, validTime, txTime time.Time) (*bt.VersionedKV, error) {
+	var out *bt.VersionedKV
 	for _, v := range vs {
 		if db.isInRange(validTime, timeRange{v.ValidTimeStart, v.ValidTimeEnd}) &&
 			db.isInRange(txTime, timeRange{v.TxTimeStart, v.TxTimeEnd}) {
@@ -211,11 +211,11 @@ func (db *DB) findVersionByTime(vs []*bt.VersionedValue, validTime, txTime time.
 }
 
 type overlappingVersion struct {
-	v         *bt.VersionedValue
+	v         *bt.VersionedKV
 	overhangs []timeRange
 }
 
-func (db *DB) findOverlappingValidTimeVersions(vs []*bt.VersionedValue, validTimeStart time.Time, validTimeEnd *time.Time, txTime time.Time) ([]overlappingVersion, error) {
+func (db *DB) findOverlappingValidTimeVersions(vs []*bt.VersionedKV, validTimeStart time.Time, validTimeEnd *time.Time, txTime time.Time) ([]overlappingVersion, error) {
 	var out []overlappingVersion
 	for _, v := range vs {
 		if !db.isInRange(txTime, timeRange{v.TxTimeStart, v.TxTimeEnd}) {
@@ -268,7 +268,7 @@ func (db *DB) hasOverlap(x, y timeRange) (hasOverlap bool, yOverhangs []timeRang
 }
 
 // when updating version records, ensure we do not create ambiguous overlap
-func (db *DB) assertNoOverlap(candidate *bt.VersionedValue, xs []*bt.VersionedValue) error {
+func (db *DB) assertNoOverlap(candidate *bt.VersionedKV, xs []*bt.VersionedKV) error {
 	for _, x := range xs {
 		txTimeOverlaps, _ := db.hasOverlap(timeRange{candidate.TxTimeStart, candidate.TxTimeEnd}, timeRange{x.TxTimeStart, x.TxTimeEnd})
 		validTimeOverlaps, _ := db.hasOverlap(timeRange{candidate.ValidTimeStart, candidate.ValidTimeEnd}, timeRange{x.ValidTimeStart, x.ValidTimeEnd})
@@ -297,7 +297,7 @@ func (db *DB) getNow() time.Time {
 // when doing a new write, ensure that "now" is monotonically increasing for all transaction times in db.
 func (db *DB) assertValidNow() error {
 	var latestInDB time.Time
-	for _, versions := range db.vValues {
+	for _, versions := range db.vKVs {
 		for _, v := range versions {
 			if v.TxTimeStart.After(latestInDB) {
 				latestInDB = v.TxTimeStart

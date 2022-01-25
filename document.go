@@ -5,22 +5,23 @@ import (
 	"time"
 )
 
-// VersionedValue is the core data type. Transaction and valid time starts are inclusive and ends are exclusive
-type VersionedValue struct {
+// VersionedKV is a transaction time and valid time versioned key-value. Transaction and valid time starts are inclusive
+// and ends are exclusive. No two VersionedKVs for the same key can overlap both transaction time and valid time.
+type VersionedKV struct {
 	Key   string
 	Value Value
 
-	TxTimeStart    time.Time
-	TxTimeEnd      *time.Time
-	ValidTimeStart time.Time
-	ValidTimeEnd   *time.Time
+	TxTimeStart    time.Time  // inclusive
+	TxTimeEnd      *time.Time // exclusive
+	ValidTimeStart time.Time  // inclusive
+	ValidTimeEnd   *time.Time // exclusive
 }
 
 // Value is the user-controlled data associated with a key (and valid and transaction time information) in the database.
 type Value interface{}
 
-// Validate a versioned value
-func (d *VersionedValue) Validate() error {
+// Validate a versioned key-value
+func (d *VersionedKV) Validate() error {
 	if d.Key == "" {
 		return errors.New("key is required")
 	}
