@@ -3,7 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/elh/bitempura.svg)](https://pkg.go.dev/github.com/elh/bitempura)
 [![Build Status](https://github.com/elh/bitempura/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/elh/bitempura/actions/workflows/go.yml?query=branch%3Amain)
 
-**Bitempura.DB is a simple, [in-memory](https://github.com/elh/bitempura/blob/main/memory/db.go) [bitemporal](https://en.wikipedia.org/wiki/Bitemporal_Modeling) key-value database.**
+**Bitempura.DB is a simple, [in-memory](https://github.com/elh/bitempura/blob/main/memory/db.go), [bitemporal](https://en.wikipedia.org/wiki/Bitemporal_Modeling) key-value database.**
 
 <br />
 
@@ -37,7 +37,7 @@ val, err := db.Get("Bob/balance", AsOfValidTime(jan1))
 // And while we are at it, let's double check all of our transactions and known states for Bob's balance.
 versions, err := db.History("Bob/balance")
 ```
-*See [full exampes](https://github.com/elh/bitempura/blob/main/memory/db_examples_test.go)
+*See [full examples](https://github.com/elh/bitempura/blob/main/memory/db_examples_test.go)
 
 Using a bitemporal database allows you to offload management of temporal application data (valid time) and data versions (transaction time) from your code and onto infrastructure. This provides a universal "time travel" capability across models in the database. Adopting these capabilities proactively is valuable because by the time you realize you need to update (or have already updated) data, it may be too late. Context may already be lost or painful to reconstruct manually.
 
@@ -88,11 +88,11 @@ type Value interface{}
 
 ## Author
 
-I'm learning about [bitemporal databases](https://en.wikipedia.org/wiki/Bitemporal_Modeling) and thought the best way to build intuition about their internal design was by building a simple one for myself. My goals are:
+I was learning about [bitemporal databases](https://en.wikipedia.org/wiki/Bitemporal_Modeling) and thought the best way to build intuition about their internal design was by building a simple one for myself. My goals are:
 * Sharing a viable, standalone key-value store lib
-* Creating artifacts to teach others about temporal data
-* Launching off this to new tools for gracefully extending existing SQL databases with bitemporality
+* Creating artifacts for explaining bitemporality
+* Expanding scope in new tools for gracefully extending existing SQL databases with bitemporality
 
-Bitempura was the name of my time travelling shrimp. RIP 2049-2022. 🦐
+Bitempura was the name of my time traveling shrimp. RIP 2049-2022. 🦐
 
 See [TODO](https://github.com/elh/bitempura/blob/main/TODO.md) for more.
