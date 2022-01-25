@@ -1,4 +1,4 @@
-package bitemporal
+package bitempura
 
 import (
 	"time"
@@ -7,20 +7,20 @@ import (
 // DB for bitemporal data.
 //
 // Temporal control options.
-// On writes: WithValidTime, WithEndValidTime.
-// On reads: AsOfValidTime, AsOfTransactionTime.
+// ReadOpt's: AsOfValidTime, AsOfTransactionTime.
+// WriteOpt's: WithValidTime, WithEndValidTime.
 type DB interface {
-	// Find document by id as of specified times.
-	Find(id string, opts ...ReadOpt) (*Document, error)
-	// List all documents as of specified times.
-	List(opts ...ReadOpt) ([]*Document, error)
-	// Put stores attributes with optional configured valid times.
-	Put(id string, attributes Attributes, opts ...WriteOpt) error
-	// Delete removes attributes with optional configured valid times.
-	Delete(id string, opts ...WriteOpt) error
+	// Get data by key (as of optional valid and transaction times).
+	Get(key string, opts ...ReadOpt) (*VersionedKV, error)
+	// List all data (as of optional valid and transaction times).
+	List(opts ...ReadOpt) ([]*VersionedKV, error)
+	// Set stores value (with optional start and end valid time).
+	Set(key string, value Value, opts ...WriteOpt) error
+	// Delete removes value (with optional start and end valid time).
+	Delete(key string, opts ...WriteOpt) error
 
-	// History returns versions by descending end transaction time, descending end valid time
-	History(id string) ([]*Document, error)
+	// History returns all versioned key-values for key by descending end transaction time, descending end valid time.
+	History(key string) ([]*VersionedKV, error)
 }
 
 type WriteOptions struct {

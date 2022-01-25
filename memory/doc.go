@@ -1,2 +1,2 @@
-// Package memory contains in memory reference implementation of bitemporal.DB
+// Package memory contains in-memory reference implementation of bitempura.DB
 package memory

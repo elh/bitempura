@@ -1,29 +1,29 @@
-package bitemporal
+package bitempura
 
 import (
 	"errors"
 	"time"
 )
 
-// Document is the core data type. Transaction and valid time starts are inclusive and ends are exclusive
-type Document struct {
-	// TODO(elh): Separate "db" model and "storage" model. The breakdown of "documents" and assignment of tx times is
-	// an internal detail that is implementation specific
-	ID             string
-	TxTimeStart    time.Time
-	TxTimeEnd      *time.Time
-	ValidTimeStart time.Time
-	ValidTimeEnd   *time.Time
-	Attributes     Attributes
+// VersionedKV is a transaction time and valid time versioned key-value. Transaction and valid time starts are inclusive
+// and ends are exclusive. No two VersionedKVs for the same key can overlap both transaction time and valid time.
+type VersionedKV struct {
+	Key   string
+	Value Value
+
+	TxTimeStart    time.Time  // inclusive
+	TxTimeEnd      *time.Time // exclusive
+	ValidTimeStart time.Time  // inclusive
+	ValidTimeEnd   *time.Time // exclusive
 }
 
-// Attributes is the user-controlled data tracked by the database.
-type Attributes map[string]interface{}
+// Value is the user-controlled data associated with a key (and valid and transaction time information) in the database.
+type Value interface{}
 
-// Validate a document
-func (d *Document) Validate() error {
-	if d.ID == "" {
-		return errors.New("id is required")
+// Validate a versioned key-value
+func (d *VersionedKV) Validate() error {
+	if d.Key == "" {
+		return errors.New("key is required")
 	}
 	if d.TxTimeStart.IsZero() {
 		return errors.New("transaction time start cannot be zero value")
@@ -46,9 +46,6 @@ func (d *Document) Validate() error {
 		if !d.ValidTimeStart.Before(*d.ValidTimeEnd) {
 			return errors.New("valid time start must be before end")
 		}
-	}
-	if d.Attributes == nil {
-		return errors.New("attributes cannot be null")
 	}
 	return nil
 }

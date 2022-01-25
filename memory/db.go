@@ -6,39 +6,40 @@ import (
 	"sort"
 	"time"
 
-	bt "github.com/elh/bitemporal"
+	bt "github.com/elh/bitempura"
 )
 
 var _ bt.DB = (*DB)(nil)
 
 // NewDB constructs a in-memory bitemporal DB.
 //
-// The database may optionally be seeded with Document "versions". No two Documents for the same id may overlap both
-// transaction time and valid time. Transaction times (which normally default to now) may be controlled with SetNow.
-func NewDB(documents []*bt.Document) (*DB, error) {
-	db := &DB{documents: map[string][]*bt.Document{}}
-	for _, d := range documents {
-		if err := d.Validate(); err != nil {
+// The database may optionally be seeded with "versioned key-value" records. No two records for the same key may overlap
+// both transaction time and valid time. Transaction times (which normally default to now) may optionally be controlled
+// with SetNow.
+func NewDB(versionedKVs ...*bt.VersionedKV) (*DB, error) {
+	db := &DB{vKVs: map[string][]*bt.VersionedKV{}}
+	for _, kv := range versionedKVs {
+		if err := kv.Validate(); err != nil {
 			return nil, err
 		}
-		if err := db.assertNoOverlap(d, db.documents[d.ID]); err != nil {
+		if err := db.assertNoOverlap(kv, db.vKVs[kv.Key]); err != nil {
 			return nil, err
 		}
-		db.documents[d.ID] = append(db.documents[d.ID], d)
+		db.vKVs[kv.Key] = append(db.vKVs[kv.Key], kv)
 	}
 	return db, nil
 }
 
 type DB struct {
-	now       *time.Time
-	documents map[string][]*bt.Document // id -> all "versions" of the document
+	now  *time.Time
+	vKVs map[string][]*bt.VersionedKV // key -> all versioned key-values with the key
 }
 
-// Find data by id (as of optional valid and transaction times).
-func (db *DB) Find(id string, opts ...bt.ReadOpt) (*bt.Document, error) {
+// Get data by key (as of optional valid and transaction times).
+func (db *DB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) {
 	options := db.handleReadOpts(opts)
 
-	vs, ok := db.documents[id]
+	vs, ok := db.vKVs[key]
 	if !ok {
 		return nil, bt.ErrNotFound
 	}
@@ -46,11 +47,11 @@ func (db *DB) Find(id string, opts ...bt.ReadOpt) (*bt.Document, error) {
 }
 
 // List all data (as of optional valid and transaction times).
-func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.Document, error) {
+func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
 	options := db.handleReadOpts(opts)
 
-	var ret []*bt.Document
-	for _, vs := range db.documents {
+	var ret []*bt.VersionedKV
+	for _, vs := range db.vKVs {
 		v, err := db.findVersionByTime(vs, options.ValidTime, options.TxTime)
 		if errors.Is(err, bt.ErrNotFound) {
 			continue
@@ -62,24 +63,24 @@ func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.Document, error) {
 	return ret, nil
 }
 
-// Put stores attributes (with optional start and end valid time).
-func (db *DB) Put(id string, attributes bt.Attributes, opts ...bt.WriteOpt) error {
-	return db.updateRecords(id, attributes, opts...)
+// Set stores value (with optional start and end valid time).
+func (db *DB) Set(key string, value bt.Value, opts ...bt.WriteOpt) error {
+	return db.update(key, value, false, opts...)
 }
 
-// Delete removes attributes (with optional start and end valid time).
-func (db *DB) Delete(id string, opts ...bt.WriteOpt) error {
-	return db.updateRecords(id, nil, opts...)
+// Delete removes value (with optional start and end valid time).
+func (db *DB) Delete(key string, opts ...bt.WriteOpt) error {
+	return db.update(key, nil, true, opts...)
 }
 
 // History returns versions by descending end transaction time, descending end valid time
-func (db *DB) History(id string) ([]*bt.Document, error) {
-	vs, ok := db.documents[id]
+func (db *DB) History(key string) ([]*bt.VersionedKV, error) {
+	vs, ok := db.vKVs[key]
 	if !ok {
 		return nil, bt.ErrNotFound
 	}
 
-	out := make([]*bt.Document, len(vs))
+	out := make([]*bt.VersionedKV, len(vs))
 	copy(out, vs)
 	sort.Slice(out, func(i, j int) bool { // reversed. flip i and j
 		return (out[j].TxTimeEnd != nil && out[i].TxTimeEnd != nil && out[j].TxTimeEnd.Before(*out[i].TxTimeEnd)) ||
@@ -91,15 +92,15 @@ func (db *DB) History(id string) ([]*bt.Document, error) {
 	return out, nil
 }
 
-// common logic of Put and Delete. handling of existing records and "overhand" is the same. If newAttributes is nil,
-// none is created (Delete case).
-func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.WriteOpt) error {
+// Common logic of Set and Delete. Handling of existing records and "overhand" is the same. If for Delete, do not create
+// new VersionedKV.
+func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.WriteOpt) error {
 	options, now, err := db.handleWriteOpts(opts)
 	if err != nil {
 		return err
 	}
 
-	vs, ok := db.documents[id]
+	vs, ok := db.vKVs[key]
 	if ok {
 		overlappingVs, err := db.findOverlappingValidTimeVersions(vs, options.ValidTime, options.EndValidTime, now)
 		if err != nil {
@@ -107,46 +108,46 @@ func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.W
 		}
 
 		for _, overlappingV := range overlappingVs {
-			// NOTE(elh): playing fast and loose with just mutating document by ptr
-			overlappingV.document.TxTimeEnd = &now
+			// NOTE(elh): playing fast and loose with just mutating versioned value by ptr
+			overlappingV.v.TxTimeEnd = &now
 
 			for _, overhang := range overlappingV.overhangs {
-				overhangDoc := &bt.Document{
-					ID:             id,
+				overhangV := &bt.VersionedKV{
+					Key:            key,
+					Value:          overlappingV.v.Value,
 					TxTimeStart:    now,
 					TxTimeEnd:      nil,
 					ValidTimeStart: overhang.start,
 					ValidTimeEnd:   overhang.end,
-					Attributes:     overlappingV.document.Attributes,
 				}
-				if err := overhangDoc.Validate(); err != nil {
+				if err := overhangV.Validate(); err != nil {
 					return err
 				}
-				if err := db.assertNoOverlap(overhangDoc, db.documents[id]); err != nil {
+				if err := db.assertNoOverlap(overhangV, db.vKVs[key]); err != nil {
 					return err
 				}
-				db.documents[id] = append(db.documents[id], overhangDoc)
+				db.vKVs[key] = append(db.vKVs[key], overhangV)
 			}
 		}
 	}
 
-	// add newAttributes for Put API, nop for Delete API
-	if newAttributes != nil {
-		newDoc := &bt.Document{
-			ID:             id,
+	// add value for Set, add nothing for Delete
+	if !isDelete {
+		newV := &bt.VersionedKV{
+			Key:            key,
+			Value:          value,
 			TxTimeStart:    now,
 			TxTimeEnd:      nil,
 			ValidTimeStart: options.ValidTime,
 			ValidTimeEnd:   options.EndValidTime,
-			Attributes:     newAttributes,
 		}
-		if err := newDoc.Validate(); err != nil {
+		if err := newV.Validate(); err != nil {
 			return err
 		}
-		if err := db.assertNoOverlap(newDoc, db.documents[id]); err != nil {
+		if err := db.assertNoOverlap(newV, db.vKVs[key]); err != nil {
 			return err
 		}
-		db.documents[id] = append(db.documents[id], newDoc)
+		db.vKVs[key] = append(db.vKVs[key], newV)
 	}
 
 	return nil
@@ -167,7 +168,7 @@ func (db *DB) handleWriteOpts(opts []bt.WriteOpt) (options *bt.WriteOptions, now
 		opt(options)
 	}
 
-	// validate write option times. this is relevant for Delete even if Put is validated at resource level
+	// validate write option times. this is relevant for Delete even if Set is validated at resource level
 	if options.EndValidTime != nil && !options.EndValidTime.After(options.ValidTime) {
 		return nil, time.Time{}, errors.New("valid time start must be before end")
 	}
@@ -192,8 +193,8 @@ func (db *DB) handleReadOpts(opts []bt.ReadOpt) *bt.ReadOptions {
 
 // if no match, return ErrNotFound
 // if more than 1 possible match, return error
-func (db *DB) findVersionByTime(vs []*bt.Document, validTime, txTime time.Time) (*bt.Document, error) {
-	var out *bt.Document
+func (db *DB) findVersionByTime(vs []*bt.VersionedKV, validTime, txTime time.Time) (*bt.VersionedKV, error) {
+	var out *bt.VersionedKV
 	for _, v := range vs {
 		if db.isInRange(validTime, timeRange{v.ValidTimeStart, v.ValidTimeEnd}) &&
 			db.isInRange(txTime, timeRange{v.TxTimeStart, v.TxTimeEnd}) {
@@ -210,11 +211,11 @@ func (db *DB) findVersionByTime(vs []*bt.Document, validTime, txTime time.Time) 
 }
 
 type overlappingVersion struct {
-	document  *bt.Document
+	v         *bt.VersionedKV
 	overhangs []timeRange
 }
 
-func (db *DB) findOverlappingValidTimeVersions(vs []*bt.Document, validTimeStart time.Time, validTimeEnd *time.Time, txTime time.Time) ([]overlappingVersion, error) {
+func (db *DB) findOverlappingValidTimeVersions(vs []*bt.VersionedKV, validTimeStart time.Time, validTimeEnd *time.Time, txTime time.Time) ([]overlappingVersion, error) {
 	var out []overlappingVersion
 	for _, v := range vs {
 		if !db.isInRange(txTime, timeRange{v.TxTimeStart, v.TxTimeEnd}) {
@@ -225,7 +226,7 @@ func (db *DB) findOverlappingValidTimeVersions(vs []*bt.Document, validTimeStart
 			continue
 		}
 		out = append(out, overlappingVersion{
-			document:  v,
+			v:         v,
 			overhangs: curOverhang,
 		})
 	}
@@ -267,12 +268,12 @@ func (db *DB) hasOverlap(x, y timeRange) (hasOverlap bool, yOverhangs []timeRang
 }
 
 // when updating version records, ensure we do not create ambiguous overlap
-func (db *DB) assertNoOverlap(candidate *bt.Document, xs []*bt.Document) error {
+func (db *DB) assertNoOverlap(candidate *bt.VersionedKV, xs []*bt.VersionedKV) error {
 	for _, x := range xs {
 		txTimeOverlaps, _ := db.hasOverlap(timeRange{candidate.TxTimeStart, candidate.TxTimeEnd}, timeRange{x.TxTimeStart, x.TxTimeEnd})
 		validTimeOverlaps, _ := db.hasOverlap(timeRange{candidate.ValidTimeStart, candidate.ValidTimeEnd}, timeRange{x.ValidTimeStart, x.ValidTimeEnd})
 		if txTimeOverlaps && validTimeOverlaps {
-			return fmt.Errorf("document versions overlap tx time and valid time")
+			return fmt.Errorf("versioned values for the same key overlap tx time and valid time")
 		}
 	}
 	return nil
@@ -296,7 +297,7 @@ func (db *DB) getNow() time.Time {
 // when doing a new write, ensure that "now" is monotonically increasing for all transaction times in db.
 func (db *DB) assertValidNow() error {
 	var latestInDB time.Time
-	for _, versions := range db.documents {
+	for _, versions := range db.vKVs {
 		for _, v := range versions {
 			if v.TxTimeStart.After(latestInDB) {
 				latestInDB = v.TxTimeStart

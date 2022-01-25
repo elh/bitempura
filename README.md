@@ -1,58 +1,98 @@
-# bitemporal ⌛
+# bitempura ⌛... ⏳!
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/elh/bitemporal.svg)](https://pkg.go.dev/github.com/elh/bitemporal)
-[![Build Status](https://github.com/elh/bitemporal/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/elh/bitemporal/actions/workflows/go.yml?query=branch%3Amain)
+[![Go Reference](https://pkg.go.dev/badge/github.com/elh/bitempura.svg)](https://pkg.go.dev/github.com/elh/bitempura)
+[![Build Status](https://github.com/elh/bitempura/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/elh/bitempura/actions/workflows/go.yml?query=branch%3Amain)
 
-Building intuition about [bitemporal databases](https://en.wikipedia.org/wiki/Bitemporal_Modeling) by building (a toy) one for myself.
+**Bitempura.DB is a simple, [in-memory](https://github.com/elh/bitempura/blob/main/memory/db.go) [bitemporal](https://en.wikipedia.org/wiki/Bitemporal_Modeling) key-value database.**
+
+<br />
+
+## Bitemporality
 
 Temporal databases model time as a core aspect of storing and querying data. A bitemporal database is one that supports these orthogonal axes.
 * **Valid time**: When the fact was *true* in the real world. This is the *application domain's* notion of time.
 * **Transaction time**: When the fact was *recorded* in the database. This is the *system's* notion of time.
 
-Because every fact in a bitemporal database has these two dimensions, it enables use cases like...
+Because every fact in a bitemporal database has these two dimensions, it enables use cases like this:
 ```go
-// What was Bob's balance on Jan 1 as best we knew on Jan 8? (VT = Jan 1, TT = Jan 8)
-doc, err := db.Find("Bob/balance", AsOfValidTime(jan1), AsOfTransactionTime(jan8))
+// We initialize a DB and start using it like an ordinary key-value store.
+db, err := memory.NewDB()
+err := db.Set("Bob/balance", 100)
+val, err := db.Get("Bob/balance")
+err := db.Delete("Alice/balance")
+// and so on...
 
-// But what was it on Jan 1 as best we now know? (VT = Jan 1, TT = now)
-doc2, err := db.Find("Bob/balance", AsOfValidTime(jan1))
+// We later learn that Bob had a temporary pending charge we missed from Dec 30 to Jan 3. (VT start = Dec 30, VT end = Jan 3)
+// Retroactively record it! This does not change his balance today nor does it destroy any history we had about that period.
+err := db.Set("Bob/balance", 90, WithValidTime(dec30), WithEndValidTime(jan3))
 
-// We just learned that Bob had a temporary charge from Dec 30 to Jan 3 (VT start = Dec 30, VT end = Jan 3).
-// Retroactively add it.
-err := db.Put("Bob/balance", Attributes{"dollars": 90}, WithValidTime(dec30), WithEndValidTime(jan3))
+// We can at any point seamlessly ask questions about the real world past AND database record past!
+// "What was Bob's balance on Jan 1 as best we knew on Jan 8?" (VT = Jan 1, TT = Jan 8)
+val, err := db.Get("Bob/balance", AsOfValidTime(jan1), AsOfTransactionTime(jan8))
 
-// And let's double check all of our transactions and known states
+// More time passes and more corrections are made... When trying to make sense of what happened last month, we can ask again:
+// "But what was it on Jan 1 as best we now know?" (VT = Jan 1, TT = now)
+val, err := db.Get("Bob/balance", AsOfValidTime(jan1))
+
+// And while we are at it, let's double check all of our transactions and known states for Bob's balance.
 versions, err := db.History("Bob/balance")
 ```
+*See [full exampes](https://github.com/elh/bitempura/blob/main/memory/db_examples_test.go)
 
-Using a bitemporal database allows you to offload management of temporal application data (valid time) and data versions (transaction time) from your code and onto infrastructure. This provides a universal "time travel" capability across models in the database. Adopting bitemporality is proactive because by the time you realize you need to update (or have already updated) data, it may be too late. Context may already be lost or painful to reconstruct manually.
+Using a bitemporal database allows you to offload management of temporal application data (valid time) and data versions (transaction time) from your code and onto infrastructure. This provides a universal "time travel" capability across models in the database. Adopting these capabilities proactively is valuable because by the time you realize you need to update (or have already updated) data, it may be too late. Context may already be lost or painful to reconstruct manually.
 
-See [in memory reference implementation](https://github.com/elh/bitemporal/blob/main/memory/db.go)
+<br />
 
-### Design
-
-* Initial DB API is inspired by XTDB (and Datomic).
-* Record layout is inspired by Snodgrass' SQL implementations.
+## Design
 
 ```go
 // DB for bitemporal data.
 //
-// Temporal control options
-// On writes: WithValidTime, WithEndValidTime
-// On reads: AsOfValidTime, AsOfTransactionTime
+// Temporal control options.
+// ReadOpt's: AsOfValidTime, AsOfTransactionTime.
+// WriteOpt's: WithValidTime, WithEndValidTime.
 type DB interface {
-	// Find data by id (as of optional valid and transaction times).
-	Find(id string, opts ...ReadOpt) (*Document, error)
+	// Get data by key (as of optional valid and transaction times).
+	Get(key string, opts ...ReadOpt) (*VersionedKV, error)
 	// List all data (as of optional valid and transaction times).
-	List(opts ...ReadOpt) ([]*Document, error)
-	// Put stores attributes (with optional start and end valid time).
-	Put(id string, attributes Attributes, opts ...WriteOpt) error
-	// Delete removes attributes (with optional start and end valid time).
-	Delete(id string, opts ...WriteOpt) error
+	List(opts ...ReadOpt) ([]*VersionedKV, error)
+	// Set stores value (with optional start and end valid time).
+	Set(key string, value Value, opts ...WriteOpt) error
+	// Delete removes value (with optional start and end valid time).
+	Delete(key string, opts ...WriteOpt) error
 
-	// History returns versions by descending end transaction time, descending end valid time
-	History(id string) ([]*Document, error)
+	// History returns all versioned key-values for key by descending end transaction time, descending end valid time.
+	History(key string) ([]*VersionedKV, error)
 }
+
+// VersionedKV is a transaction time and valid time versioned key-value. Transaction and valid time starts are inclusive
+// and ends are exclusive. No two VersionedKVs for the same key can overlap both transaction time and valid time.
+type VersionedKV struct {
+	Key   string
+	Value Value
+
+	TxTimeStart    time.Time  // inclusive
+	TxTimeEnd      *time.Time // exclusive
+	ValidTimeStart time.Time  // inclusive
+	ValidTimeEnd   *time.Time // exclusive
+}
+
+// Value is the user-controlled data associated with a key (and valid and transaction time information) in the database.
+type Value interface{}
 ```
 
-See [TODO](https://github.com/elh/bitemporal/blob/main/TODO.md)
+* DB interface is inspired by XTDB (and Datomic).
+* Storage model is inspired by Snodgrass' SQL implementations.
+
+<br />
+
+## Author
+
+I'm learning about [bitemporal databases](https://en.wikipedia.org/wiki/Bitemporal_Modeling) and thought the best way to build intuition about their internal design was by building a simple one for myself. My goals are:
+* Sharing a viable, standalone key-value store lib
+* Creating artifacts to teach others about temporal data
+* Launching off this to new tools for gracefully extending existing SQL databases with bitemporality
+
+Bitempura was the name of my time travelling shrimp. RIP 2049-2022. 🦐
+
+See [TODO](https://github.com/elh/bitempura/blob/main/TODO.md) for more.
