@@ -30,6 +30,7 @@ func NewDB(versionedKVs ...*bt.VersionedKV) (*DB, error) {
 	return db, nil
 }
 
+// DB is an in-memory, bitemporal key-value database.
 type DB struct {
 	now  *time.Time
 	vKVs map[string][]*bt.VersionedKV // key -> all versioned key-values with the key

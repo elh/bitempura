@@ -23,6 +23,7 @@ type DB interface {
 	History(key string) ([]*VersionedKV, error)
 }
 
+// WriteOptions is a struct for processing WriteOpt's to be used by DB
 type WriteOptions struct {
 	ValidTime    time.Time
 	EndValidTime *time.Time
@@ -45,6 +46,7 @@ func WithEndValidTime(t time.Time) WriteOpt {
 	}
 }
 
+// ReadOptions is a struct for processing ReadOpt's to be used by DB
 type ReadOptions struct {
 	ValidTime time.Time
 	TxTime    time.Time
