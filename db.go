@@ -11,16 +11,16 @@ import (
 // On reads: AsOfValidTime, AsOfTransactionTime.
 type DB interface {
 	// Get data by key (as of optional valid and transaction times).
-	Get(key string, opts ...ReadOpt) (*Document, error)
+	Get(key string, opts ...ReadOpt) (*VersionedValue, error)
 	// List all data (as of optional valid and transaction times).
-	List(opts ...ReadOpt) ([]*Document, error)
+	List(opts ...ReadOpt) ([]*VersionedValue, error)
 	// Set stores value (with optional start and end valid time).
 	Set(key string, value Value, opts ...WriteOpt) error
 	// Delete removes value (with optional start and end valid time).
 	Delete(key string, opts ...WriteOpt) error
 
 	// History returns versions by descending end transaction time, descending end valid time
-	History(key string) ([]*Document, error)
+	History(key string) ([]*VersionedValue, error)
 }
 
 type WriteOptions struct {

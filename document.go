@@ -5,23 +5,22 @@ import (
 	"time"
 )
 
-// Document is the core data type. Transaction and valid time starts are inclusive and ends are exclusive
-type Document struct {
-	// TODO(elh): Separate "db" model and "storage" model. The breakdown of "documents" and assignment of tx times is
-	// an internal detail that is implementation specific
-	Key            string
+// VersionedValue is the core data type. Transaction and valid time starts are inclusive and ends are exclusive
+type VersionedValue struct {
+	Key   string
+	Value Value
+
 	TxTimeStart    time.Time
 	TxTimeEnd      *time.Time
 	ValidTimeStart time.Time
 	ValidTimeEnd   *time.Time
-	Value          Value
 }
 
 // Value is the user-controlled data associated with a key (and valid and transaction time information) in the database.
 type Value interface{}
 
-// Validate a document
-func (d *Document) Validate() error {
+// Validate a versioned value
+func (d *VersionedValue) Validate() error {
 	if d.Key == "" {
 		return errors.New("key is required")
 	}

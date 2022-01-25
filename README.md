@@ -18,7 +18,7 @@ Because every fact in a bitemporal database has these two dimensions, it enables
 // We initialize a DB and start using it like an ordinary key-value store.
 db, err := memory.NewDB()
 err := db.Set("Bob/balance", 100)
-doc, err := db.Get("Bob/balance")
+val, err := db.Get("Bob/balance")
 err := db.Delete("Alice/balance")
 // and so on...
 
@@ -28,11 +28,11 @@ err := db.Set("Bob/balance", 90, WithValidTime(dec30), WithEndValidTime(jan3))
 
 // We can at any point seamlessly ask questions about the real world past AND database record past!
 // "What was Bob's balance on Jan 1 as best we knew on Jan 8?" (VT = Jan 1, TT = Jan 8)
-doc, err := db.Get("Bob/balance", AsOfValidTime(jan1), AsOfTransactionTime(jan8))
+val, err := db.Get("Bob/balance", AsOfValidTime(jan1), AsOfTransactionTime(jan8))
 
 // More time passes and more corrections are made... When trying to make sense of what happened last month, we can ask again:
 // "But what was it on Jan 1 as best we now know?" (VT = Jan 1, TT = now)
-doc2, err := db.Get("Bob/balance", AsOfValidTime(jan1))
+val, err := db.Get("Bob/balance", AsOfValidTime(jan1))
 
 // And while we are at it, let's double check all of our transactions and known states for Bob's balance.
 versions, err := db.History("Bob/balance")
@@ -56,16 +56,27 @@ Using a bitemporal database allows you to offload management of temporal applica
 // On reads: AsOfValidTime, AsOfTransactionTime.
 type DB interface {
 	// Get data by key (as of optional valid and transaction times).
-	Get(key string, opts ...ReadOpt) (*Document, error)
+	Get(key string, opts ...ReadOpt) (*VersionedValue, error)
 	// List all data (as of optional valid and transaction times).
-	List(opts ...ReadOpt) ([]*Document, error)
+	List(opts ...ReadOpt) ([]*VersionedValue, error)
 	// Set stores value (with optional start and end valid time).
 	Set(key string, value Value, opts ...WriteOpt) error
 	// Delete removes value (with optional start and end valid time).
 	Delete(key string, opts ...WriteOpt) error
 
 	// History returns versions by descending end transaction time, descending end valid time
-	History(key string) ([]*Document, error)
+	History(key string) ([]*VersionedValue, error)
+}
+
+// VersionedValue is the core data type. Transaction and valid time starts are inclusive and ends are exclusive
+type VersionedValue struct {
+	Key   string
+	Value Value
+
+	TxTimeStart    time.Time
+	TxTimeEnd      *time.Time
+	ValidTimeStart time.Time
+	ValidTimeEnd   *time.Time
 }
 ```
 

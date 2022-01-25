@@ -195,7 +195,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	out, err := db.List(AsOfValidTime(day2), AsOfTransactionTime(day3))
 	require.Nil(t, err)
 	require.Len(t, out, 3)
-	outByKey := sortDocumentsByKey(out)
+	outByKey := sortValuesByKey(out)
 	assert.Equal(t, "p2", outByKey[0].Key)
 	assert.Equal(t, Doc{
 		"entry-pt":       "SFO",
@@ -223,7 +223,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	out, err = db.List(AsOfValidTime(day2))
 	require.Nil(t, err)
 	require.Len(t, out, 4)
-	outByKey = sortDocumentsByKey(out)
+	outByKey = sortValuesByKey(out)
 	assert.Equal(t, "p1", outByKey[0].Key) // this was not known in the original query. p1 info was recorded TT = day 4
 	assert.Equal(t, Doc{
 		"entry-pt":       "NY",
@@ -253,7 +253,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	out, err = db.List()
 	require.Nil(t, err)
 	require.Len(t, out, 7)
-	outByKey = sortDocumentsByKey(out)
+	outByKey = sortValuesByKey(out)
 	assert.Equal(t, "p1", outByKey[0].Key)
 	assert.Equal(t, Doc{
 		"entry-pt":       "LA",

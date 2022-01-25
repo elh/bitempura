@@ -48,7 +48,7 @@ func TestConstructor(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
-		documents func() []*Document
+		vValues func() []*VersionedValue
 	}
 
 	type testCase struct {
@@ -62,8 +62,8 @@ func TestConstructor(t *testing.T) {
 	}{
 		{
 			fixtures: fixtures{
-				name:      "empty db",
-				documents: func() []*Document { return nil },
+				name:    "empty db",
+				vValues: func() []*VersionedValue { return nil },
 			},
 			testCases: []testCase{
 				{
@@ -74,8 +74,8 @@ func TestConstructor(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "overlapping transaction time",
-				documents: func() []*Document {
-					return []*Document{
+				vValues: func() []*VersionedValue {
+					return []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t1,
@@ -104,8 +104,8 @@ func TestConstructor(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "overlapping valid time",
-				documents: func() []*Document {
-					return []*Document{
+				vValues: func() []*VersionedValue {
+					return []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t1,
@@ -134,8 +134,8 @@ func TestConstructor(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "overlapping transaction time and valid time",
-				documents: func() []*Document {
-					return []*Document{
+				vValues: func() []*VersionedValue {
+					return []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t1,
@@ -168,7 +168,7 @@ func TestConstructor(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				_, err := memory.NewDB(s.fixtures.documents()...)
+				_, err := memory.NewDB(s.fixtures.vValues()...)
 				if tC.expectErr {
 					require.NotNil(t, err)
 					return
@@ -183,14 +183,14 @@ func TestGet(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
-		documents func() []*Document
+		vValues func() []*VersionedValue
 	}
 
 	// 1 initial set
-	aDocsSingleSet := fixtures{
+	valuesSingleSet := fixtures{
 		name: "single set, no end",
-		documents: func() []*Document {
-			return []*Document{
+		vValues: func() []*VersionedValue {
+			return []*VersionedValue{
 				{
 					Key:            "A",
 					TxTimeStart:    t1,
@@ -203,10 +203,10 @@ func TestGet(t *testing.T) {
 		},
 	}
 	// 1 initial set with a valid time end
-	aDocsSingleSetWithEnd := fixtures{
+	valuesSingleSetWithEnd := fixtures{
 		name: "single set, with end",
-		documents: func() []*Document {
-			return []*Document{
+		vValues: func() []*VersionedValue {
+			return []*VersionedValue{
 				{
 					Key:            "A",
 					TxTimeStart:    t1,
@@ -220,10 +220,10 @@ func TestGet(t *testing.T) {
 	}
 	// // 1 initial set and 1 set with later valid time updating score
 	// // this sets a TxTimeEnd for the initial record and creates 2 new ones
-	aDocsUpdated := fixtures{
+	valuesUpdated := fixtures{
 		name: "initial set, and then set with later valid time",
-		documents: func() []*Document {
-			return []*Document{
+		vValues: func() []*VersionedValue {
+			return []*VersionedValue{
 				{
 					Key:            "A",
 					TxTimeStart:    t1,
@@ -251,10 +251,10 @@ func TestGet(t *testing.T) {
 			}
 		},
 	}
-	aDocsDeleted := fixtures{
+	valuesDeleted := fixtures{
 		name: "initial set, and then deletion with later valid time",
-		documents: func() []*Document {
-			return []*Document{
+		vValues: func() []*VersionedValue {
+			return []*VersionedValue{
 				{
 					Key:            "A",
 					TxTimeStart:    t1,
@@ -290,8 +290,8 @@ func TestGet(t *testing.T) {
 	}{
 		{
 			fixtures: fixtures{
-				name:      "empty db",
-				documents: func() []*Document { return nil },
+				name:    "empty db",
+				vValues: func() []*VersionedValue { return nil },
 			},
 			testCases: []testCase{
 				{
@@ -302,7 +302,7 @@ func TestGet(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsSingleSet,
+			fixtures: valuesSingleSet,
 			testCases: []testCase{
 				{
 					desc:        "found - default as of times",
@@ -348,7 +348,7 @@ func TestGet(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsSingleSetWithEnd,
+			fixtures: valuesSingleSetWithEnd,
 			testCases: []testCase{
 				{
 					desc:        "found - as of valid and tx time T in range",
@@ -377,7 +377,7 @@ func TestGet(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsUpdated,
+			fixtures: valuesUpdated,
 			testCases: []testCase{
 				{
 					desc:        "found - default as of times",
@@ -405,7 +405,7 @@ func TestGet(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsDeleted,
+			fixtures: valuesDeleted,
 			testCases: []testCase{
 				{
 					desc:              "not found - default as of times",
@@ -438,7 +438,7 @@ func TestGet(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.documents()...)
+				db, err := memory.NewDB(s.fixtures.vValues()...)
 				require.Nil(t, err)
 				ret, err := db.Get(tC.key, tC.readOpts...)
 				if tC.expectErrNotFound {
@@ -460,10 +460,10 @@ func TestList(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
-		documents func() []*Document
+		vValues func() []*VersionedValue
 	}
 
-	aDoc := &Document{
+	aValue := &VersionedValue{
 		Key:            "A",
 		TxTimeStart:    t1,
 		TxTimeEnd:      nil,
@@ -472,14 +472,14 @@ func TestList(t *testing.T) {
 		Value:          "Old",
 	}
 	aFixtures := fixtures{
-		name: "A document",
-		documents: func() []*Document {
-			return []*Document{
-				aDoc,
+		name: "A values",
+		vValues: func() []*VersionedValue {
+			return []*VersionedValue{
+				aValue,
 			}
 		},
 	}
-	bDoc := &Document{
+	bValue := &VersionedValue{
 		Key:            "B",
 		TxTimeStart:    t1,
 		TxTimeEnd:      &t3,
@@ -487,7 +487,7 @@ func TestList(t *testing.T) {
 		ValidTimeEnd:   nil,
 		Value:          "Old",
 	}
-	bDocUpdate1 := &Document{
+	bValueUpdate1 := &VersionedValue{
 		Key:            "B",
 		TxTimeStart:    t3,
 		TxTimeEnd:      nil,
@@ -495,7 +495,7 @@ func TestList(t *testing.T) {
 		ValidTimeEnd:   &t3,
 		Value:          "Old",
 	}
-	bDocUpdate2 := &Document{
+	bValueUpdate2 := &VersionedValue{
 		Key:            "B",
 		TxTimeStart:    t3,
 		TxTimeEnd:      nil,
@@ -504,22 +504,22 @@ func TestList(t *testing.T) {
 		Value:          "New",
 	}
 	bFixtures := fixtures{
-		name: "A, B documents",
-		documents: func() []*Document {
-			return []*Document{
-				aDoc,
-				bDoc,
-				bDocUpdate1,
-				bDocUpdate2,
+		name: "A, B values",
+		vValues: func() []*VersionedValue {
+			return []*VersionedValue{
+				aValue,
+				bValue,
+				bValueUpdate1,
+				bValueUpdate2,
 			}
 		},
 	}
 
 	type testCase struct {
-		desc            string
-		readOpts        []ReadOpt
-		expectErr       bool
-		expectDocuments []*Document
+		desc         string
+		readOpts     []ReadOpt
+		expectErr    bool
+		expectValues []*VersionedValue
 	}
 
 	testCaseSets := []struct {
@@ -528,13 +528,13 @@ func TestList(t *testing.T) {
 	}{
 		{
 			fixtures: fixtures{
-				name:      "empty db",
-				documents: func() []*Document { return nil },
+				name:    "empty db",
+				vValues: func() []*VersionedValue { return nil },
 			},
 			testCases: []testCase{
 				{
-					desc:            "not found",
-					expectDocuments: nil,
+					desc:         "not found",
+					expectValues: nil,
 				},
 			},
 		},
@@ -542,8 +542,8 @@ func TestList(t *testing.T) {
 			fixtures: aFixtures,
 			testCases: []testCase{
 				{
-					desc:            "found - default as of times",
-					expectDocuments: []*Document{aDoc},
+					desc:         "found - default as of times",
+					expectValues: []*VersionedValue{aValue},
 				},
 			},
 		},
@@ -551,18 +551,18 @@ func TestList(t *testing.T) {
 			fixtures: bFixtures,
 			testCases: []testCase{
 				{
-					desc:            "found - default as of times",
-					expectDocuments: []*Document{aDoc, bDocUpdate2},
+					desc:         "found - default as of times",
+					expectValues: []*VersionedValue{aValue, bValueUpdate2},
 				},
 				{
-					desc:            "not found - as of transaction time",
-					readOpts:        []ReadOpt{AsOfTransactionTime(t0)},
-					expectDocuments: nil,
+					desc:         "not found - as of transaction time",
+					readOpts:     []ReadOpt{AsOfTransactionTime(t0)},
+					expectValues: nil,
 				},
 				{
-					desc:            "found - as of valid time",
-					readOpts:        []ReadOpt{AsOfValidTime(t2)},
-					expectDocuments: []*Document{aDoc, bDocUpdate1},
+					desc:         "found - as of valid time",
+					readOpts:     []ReadOpt{AsOfValidTime(t2)},
+					expectValues: []*VersionedValue{aValue, bValueUpdate1},
 				},
 			},
 		},
@@ -572,7 +572,7 @@ func TestList(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.documents()...)
+				db, err := memory.NewDB(s.fixtures.vValues()...)
 				require.Nil(t, err)
 				ret, err := db.List(tC.readOpts...)
 				if tC.expectErr {
@@ -581,18 +581,18 @@ func TestList(t *testing.T) {
 					return
 				}
 				require.Nil(t, err)
-				require.Len(t, ret, len(tC.expectDocuments))
-				if len(tC.expectDocuments) == 0 {
+				require.Len(t, ret, len(tC.expectValues))
+				if len(tC.expectValues) == 0 {
 					return
 				}
-				assert.Equal(t, sortDocumentsByKey(tC.expectDocuments), sortDocumentsByKey(ret))
+				assert.Equal(t, sortValuesByKey(tC.expectValues), sortValuesByKey(ret))
 			})
 		}
 	}
 }
 
-func sortDocumentsByKey(ds []*Document) []*Document {
-	out := make([]*Document, len(ds))
+func sortValuesByKey(ds []*VersionedValue) []*VersionedValue {
+	out := make([]*VersionedValue, len(ds))
 	copy(out, ds)
 	sort.Slice(out, func(i, j int) bool { return out[i].Key < out[j].Key })
 	return out
@@ -602,14 +602,14 @@ func TestSet(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
-		documents func() []*Document
+		vValues func() []*VersionedValue
 	}
 
 	// verify writes by checking result of find as of configured valid time and tx time
 	type findCheck struct {
 		readOpts          []ReadOpt
 		expectErrNotFound bool
-		expectDocument    *Document
+		expectValue       *VersionedValue
 	}
 
 	type testCase struct {
@@ -629,8 +629,8 @@ func TestSet(t *testing.T) {
 	}{
 		{
 			fixtures: fixtures{
-				name:      "empty db",
-				documents: func() []*Document { return nil },
+				name:    "empty db",
+				vValues: func() []*VersionedValue { return nil },
 			},
 			testCases: []testCase{
 				{
@@ -640,7 +640,7 @@ func TestSet(t *testing.T) {
 					value: "Old",
 					findChecks: []findCheck{
 						{
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      nil,
@@ -659,7 +659,7 @@ func TestSet(t *testing.T) {
 					writeOpts: []WriteOpt{WithValidTime(t0)},
 					findChecks: []findCheck{
 						{
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      nil,
@@ -678,7 +678,7 @@ func TestSet(t *testing.T) {
 					writeOpts: []WriteOpt{WithEndValidTime(t2)},
 					findChecks: []findCheck{
 						{
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      nil,
@@ -697,7 +697,7 @@ func TestSet(t *testing.T) {
 					writeOpts: []WriteOpt{WithValidTime(t0), WithEndValidTime(t3)},
 					findChecks: []findCheck{
 						{
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      nil,
@@ -715,7 +715,7 @@ func TestSet(t *testing.T) {
 					value: nil,
 					findChecks: []findCheck{
 						{
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      nil,
@@ -762,8 +762,8 @@ func TestSet(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "existing entry - no valid end",
-				documents: func() []*Document {
-					return []*Document{
+				vValues: func() []*VersionedValue {
+					return []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t1,
@@ -783,7 +783,7 @@ func TestSet(t *testing.T) {
 					value: "New",
 					findChecks: []findCheck{
 						{
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      nil,
@@ -795,7 +795,7 @@ func TestSet(t *testing.T) {
 						// before update in valid time
 						{
 							readOpts: []ReadOpt{AsOfValidTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      nil,
@@ -807,7 +807,7 @@ func TestSet(t *testing.T) {
 						// before update in transaction time
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t3,
@@ -827,7 +827,7 @@ func TestSet(t *testing.T) {
 					findChecks: []findCheck{
 						// query as of now for valid time and transaction time. change not visible
 						{
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
@@ -839,7 +839,7 @@ func TestSet(t *testing.T) {
 						// query as of now for transaction time, before update for valid time. change not visible
 						{
 							readOpts: []ReadOpt{AsOfValidTime(t1)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
@@ -851,7 +851,7 @@ func TestSet(t *testing.T) {
 						// query as of now for valid time, before update for transaction time. change not visible
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t4,
@@ -863,7 +863,7 @@ func TestSet(t *testing.T) {
 						// query as of valid time in range, transaction time after update. change visible
 						{
 							readOpts: []ReadOpt{AsOfValidTime(t2), AsOfTransactionTime(t5)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
@@ -883,7 +883,7 @@ func TestSet(t *testing.T) {
 					findChecks: []findCheck{
 						// query as of now for valid time and transaction time. change visible
 						{
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
@@ -895,7 +895,7 @@ func TestSet(t *testing.T) {
 						// query as of now for valid time, before update for transaction time. change not visible
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t4,
@@ -911,8 +911,8 @@ func TestSet(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "existing entries. multiple valid time ranges active",
-				documents: func() []*Document {
-					return []*Document{
+				vValues: func() []*VersionedValue {
+					return []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t1,
@@ -951,7 +951,7 @@ func TestSet(t *testing.T) {
 						// TT = t5, VT = t4. after update transaction, not in valid range. too high
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t5)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
@@ -963,7 +963,7 @@ func TestSet(t *testing.T) {
 						// TT = t5, VT = t1. after update transaction, not in valid range. too low
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t5), AsOfValidTime(t1)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
@@ -975,7 +975,7 @@ func TestSet(t *testing.T) {
 						// TT = t5, VT = t3. after update transaction, in valid range
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t5), AsOfValidTime(t3)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
@@ -987,7 +987,7 @@ func TestSet(t *testing.T) {
 						// TT = t3, VT = t2 before update transaction, in the fixture original range
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t3), AsOfValidTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      &t4,
@@ -999,7 +999,7 @@ func TestSet(t *testing.T) {
 						// TT = t3, VT = t4. before update transaction, in the fixture updated range
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t3), AsOfValidTime(t4)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      &t4,
@@ -1011,7 +1011,7 @@ func TestSet(t *testing.T) {
 						// TT = t2, VT = t2. before 1st fixture update transaction
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2), AsOfValidTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t3,
@@ -1030,7 +1030,7 @@ func TestSet(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.documents()...)
+				db, err := memory.NewDB(s.fixtures.vValues()...)
 				require.Nil(t, err)
 				if tC.now != nil {
 					db.SetNow(*tC.now)
@@ -1049,7 +1049,7 @@ func TestSet(t *testing.T) {
 						return
 					}
 					require.Nil(t, err)
-					assert.Equal(t, findCheck.expectDocument, ret)
+					assert.Equal(t, findCheck.expectValue, ret)
 				}
 			})
 		}
@@ -1060,14 +1060,14 @@ func TestDelete(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
-		documents func() []*Document
+		vValues func() []*VersionedValue
 	}
 
 	// verify writes by checking result of find as of configured valid time and tx time
 	type findCheck struct {
 		readOpts          []ReadOpt
 		expectErrNotFound bool
-		expectDocument    *Document
+		expectValue       *VersionedValue
 	}
 
 	type testCase struct {
@@ -1086,8 +1086,8 @@ func TestDelete(t *testing.T) {
 	}{
 		{
 			fixtures: fixtures{
-				name:      "empty db",
-				documents: func() []*Document { return nil },
+				name:    "empty db",
+				vValues: func() []*VersionedValue { return nil },
 			},
 			testCases: []testCase{
 				{
@@ -1105,8 +1105,8 @@ func TestDelete(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "existing entry - no valid end",
-				documents: func() []*Document {
-					return []*Document{
+				vValues: func() []*VersionedValue {
+					return []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t1,
@@ -1151,7 +1151,7 @@ func TestDelete(t *testing.T) {
 						// before update in valid time
 						{
 							readOpts: []ReadOpt{AsOfValidTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      nil,
@@ -1163,7 +1163,7 @@ func TestDelete(t *testing.T) {
 						// before update in transaction time
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t3,
@@ -1182,7 +1182,7 @@ func TestDelete(t *testing.T) {
 					findChecks: []findCheck{
 						// query as of now for valid time and transaction time. change not visible
 						{
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
@@ -1194,7 +1194,7 @@ func TestDelete(t *testing.T) {
 						// query as of now for transaction time, before update for valid time. change not visible
 						{
 							readOpts: []ReadOpt{AsOfValidTime(t1)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
@@ -1206,7 +1206,7 @@ func TestDelete(t *testing.T) {
 						// query as of now for valid time, before update for transaction time. change not visible
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t4,
@@ -1235,7 +1235,7 @@ func TestDelete(t *testing.T) {
 						// query as of now for valid time, before update for transaction time. change not visible
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t4,
@@ -1251,8 +1251,8 @@ func TestDelete(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "existing entries. multiple valid time ranges active",
-				documents: func() []*Document {
-					return []*Document{
+				vValues: func() []*VersionedValue {
+					return []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t1,
@@ -1290,7 +1290,7 @@ func TestDelete(t *testing.T) {
 						// TT = t5, VT = t4. after update transaction, not in valid range. too high
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t5)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
@@ -1302,7 +1302,7 @@ func TestDelete(t *testing.T) {
 						// TT = t5, VT = t1. after update transaction, not in valid range. too low
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t5), AsOfValidTime(t1)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
@@ -1319,7 +1319,7 @@ func TestDelete(t *testing.T) {
 						// TT = t3, VT = t2 before update transaction, in the fixture original range
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t3), AsOfValidTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      &t4,
@@ -1331,7 +1331,7 @@ func TestDelete(t *testing.T) {
 						// TT = t3, VT = t4. before update transaction, in the fixture updated range
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t3), AsOfValidTime(t4)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      &t4,
@@ -1343,7 +1343,7 @@ func TestDelete(t *testing.T) {
 						// TT = t2, VT = t2. before 1st fixture update transaction
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2), AsOfValidTime(t2)},
-							expectDocument: &Document{
+							expectValue: &VersionedValue{
 								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t3,
@@ -1362,7 +1362,7 @@ func TestDelete(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.documents()...)
+				db, err := memory.NewDB(s.fixtures.vValues()...)
 				require.Nil(t, err)
 				if tC.now != nil {
 					db.SetNow(*tC.now)
@@ -1381,7 +1381,7 @@ func TestDelete(t *testing.T) {
 						return
 					}
 					require.Nil(t, err)
-					assert.Equal(t, findCheck.expectDocument, ret)
+					assert.Equal(t, findCheck.expectValue, ret)
 				}
 			})
 		}
@@ -1392,14 +1392,14 @@ func TestHistory(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
-		documents func() []*Document
+		vValues func() []*VersionedValue
 	}
 
 	// 1 initial set
-	aDocsSingleSet := fixtures{
+	valuesSingleSet := fixtures{
 		name: "single set, no end",
-		documents: func() []*Document {
-			return []*Document{
+		vValues: func() []*VersionedValue {
+			return []*VersionedValue{
 				{
 					Key:            "A",
 					TxTimeStart:    t1,
@@ -1412,10 +1412,10 @@ func TestHistory(t *testing.T) {
 		},
 	}
 	// 1 initial set with a valid time end
-	aDocsSingleSetWithEnd := fixtures{
+	valuesSingleSetWithEnd := fixtures{
 		name: "single set, with end",
-		documents: func() []*Document {
-			return []*Document{
+		vValues: func() []*VersionedValue {
+			return []*VersionedValue{
 				{
 					Key:            "A",
 					TxTimeStart:    t1,
@@ -1429,10 +1429,10 @@ func TestHistory(t *testing.T) {
 	}
 	// // 1 initial set and 1 set with later valid time updating score
 	// // this sets a TxTimeEnd for the initial record and creates 2 new ones
-	aDocsUpdated := fixtures{
+	valuesUpdated := fixtures{
 		name: "initial set, and then set with later valid time",
-		documents: func() []*Document {
-			return []*Document{
+		vValues: func() []*VersionedValue {
+			return []*VersionedValue{
 				{
 					Key:            "A",
 					TxTimeStart:    t1,
@@ -1460,10 +1460,10 @@ func TestHistory(t *testing.T) {
 			}
 		},
 	}
-	aDocsDeleted := fixtures{
+	valuesDeleted := fixtures{
 		name: "initial set, and then deletion with later valid time",
-		documents: func() []*Document {
-			return []*Document{
+		vValues: func() []*VersionedValue {
+			return []*VersionedValue{
 				{
 					Key:            "A",
 					TxTimeStart:    t1,
@@ -1489,7 +1489,7 @@ func TestHistory(t *testing.T) {
 		key               string
 		expectErrNotFound bool
 		expectErr         bool // this is exclusive of ErrNotFound. this is for unexepcted errors
-		expectDocuments   []*Document
+		expectValues      []*VersionedValue
 	}
 
 	testCaseSets := []struct {
@@ -1498,8 +1498,8 @@ func TestHistory(t *testing.T) {
 	}{
 		{
 			fixtures: fixtures{
-				name:      "empty db",
-				documents: func() []*Document { return nil },
+				name:    "empty db",
+				vValues: func() []*VersionedValue { return nil },
 			},
 			testCases: []testCase{
 				{
@@ -1510,12 +1510,12 @@ func TestHistory(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsSingleSet,
+			fixtures: valuesSingleSet,
 			testCases: []testCase{
 				{
 					desc: "basic - return 1 version",
 					key:  "A",
-					expectDocuments: []*Document{
+					expectValues: []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t1,
@@ -1529,12 +1529,12 @@ func TestHistory(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsSingleSetWithEnd,
+			fixtures: valuesSingleSetWithEnd,
 			testCases: []testCase{
 				{
 					desc: "basic - return 1 version",
 					key:  "A",
-					expectDocuments: []*Document{
+					expectValues: []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t1,
@@ -1548,12 +1548,12 @@ func TestHistory(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsUpdated,
+			fixtures: valuesUpdated,
 			testCases: []testCase{
 				{
 					desc: "return versions by descending end transaction time, descending end valid time",
 					key:  "A",
-					expectDocuments: []*Document{
+					expectValues: []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t3,
@@ -1583,12 +1583,12 @@ func TestHistory(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsDeleted,
+			fixtures: valuesDeleted,
 			testCases: []testCase{
 				{
 					desc: "returns \"deleted\" versions",
 					key:  "A",
-					expectDocuments: []*Document{
+					expectValues: []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t3,
@@ -1612,8 +1612,8 @@ func TestHistory(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "version has later transaction time start, but earlier transaction time end",
-				documents: func() []*Document {
-					return []*Document{
+				vValues: func() []*VersionedValue {
+					return []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t2,
@@ -1637,7 +1637,7 @@ func TestHistory(t *testing.T) {
 				{
 					desc: "return versions by descending end transaction time, descending end valid time",
 					key:  "A",
-					expectDocuments: []*Document{
+					expectValues: []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t1,
@@ -1661,8 +1661,8 @@ func TestHistory(t *testing.T) {
 		{
 			fixtures: fixtures{
 				name: "multiple versions have nil end transaction time",
-				documents: func() []*Document {
-					return []*Document{
+				vValues: func() []*VersionedValue {
+					return []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t1,
@@ -1686,7 +1686,7 @@ func TestHistory(t *testing.T) {
 				{
 					desc: "return versions by descending end transaction time, descending end valid time",
 					key:  "A",
-					expectDocuments: []*Document{
+					expectValues: []*VersionedValue{
 						{
 							Key:            "A",
 							TxTimeStart:    t2,
@@ -1713,7 +1713,7 @@ func TestHistory(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.documents()...)
+				db, err := memory.NewDB(s.fixtures.vValues()...)
 				require.Nil(t, err)
 				ret, err := db.History(tC.key)
 				if tC.expectErrNotFound {
@@ -1725,7 +1725,7 @@ func TestHistory(t *testing.T) {
 					return
 				}
 				require.Nil(t, err)
-				assert.Equal(t, tC.expectDocuments, ret)
+				assert.Equal(t, tC.expectValues, ret)
 			})
 		}
 	}
