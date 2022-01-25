@@ -177,7 +177,7 @@ func TestConstructor(t *testing.T) {
 	}
 }
 
-func TestFind(t *testing.T) {
+func TestGet(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
@@ -187,7 +187,7 @@ func TestFind(t *testing.T) {
 	put1Attrs := Attributes{"score": 100}
 	put2Attrs := Attributes{"score": 200}
 	// 1 initial put
-	aDocsSinglePut := fixtures{
+	aDocsSingleSet := fixtures{
 		name: "single put, no end",
 		documents: func() []*Document {
 			return []*Document{
@@ -203,7 +203,7 @@ func TestFind(t *testing.T) {
 		},
 	}
 	// 1 initial put with a valid time end
-	aDocsSinglePutWithEnd := fixtures{
+	aDocsSingleSetWithEnd := fixtures{
 		name: "single put, with end",
 		documents: func() []*Document {
 			return []*Document{
@@ -302,7 +302,7 @@ func TestFind(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsSinglePut,
+			fixtures: aDocsSingleSet,
 			testCases: []testCase{
 				{
 					desc:             "found - default as of times",
@@ -348,7 +348,7 @@ func TestFind(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsSinglePutWithEnd,
+			fixtures: aDocsSingleSetWithEnd,
 			testCases: []testCase{
 				{
 					desc:             "found - as of valid and tx time T in range",
@@ -440,7 +440,7 @@ func TestFind(t *testing.T) {
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				db, err := memory.NewDB(s.fixtures.documents()...)
 				require.Nil(t, err)
-				ret, err := db.Find(tC.id, tC.readOpts...)
+				ret, err := db.Get(tC.id, tC.readOpts...)
 				if tC.expectErrNotFound {
 					require.ErrorIs(t, err, ErrNotFound)
 					return
@@ -606,7 +606,7 @@ func sortDocumentsByID(ds []*Document) []*Document {
 	return out
 }
 
-func TestPut(t *testing.T) {
+func TestSet(t *testing.T) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
@@ -1065,7 +1065,7 @@ func TestPut(t *testing.T) {
 				if tC.now != nil {
 					db.SetNow(*tC.now)
 				}
-				err = db.Put(tC.id, tC.attributes, tC.writeOpts...)
+				err = db.Set(tC.id, tC.attributes, tC.writeOpts...)
 				if tC.expectErr {
 					require.NotNil(t, err)
 					return
@@ -1073,7 +1073,7 @@ func TestPut(t *testing.T) {
 				require.Nil(t, err)
 
 				for _, findCheck := range tC.findChecks {
-					ret, err := db.Find(tC.id, findCheck.readOpts...)
+					ret, err := db.Get(tC.id, findCheck.readOpts...)
 					if findCheck.expectErrNotFound {
 						require.ErrorIs(t, err, ErrNotFound)
 						return
@@ -1429,7 +1429,7 @@ func TestDelete(t *testing.T) {
 				require.Nil(t, err)
 
 				for _, findCheck := range tC.findChecks {
-					ret, err := db.Find(tC.id, findCheck.readOpts...)
+					ret, err := db.Get(tC.id, findCheck.readOpts...)
 					if findCheck.expectErrNotFound {
 						require.ErrorIs(t, err, ErrNotFound)
 						return
@@ -1452,7 +1452,7 @@ func TestHistory(t *testing.T) {
 	put1Attrs := Attributes{"score": 100}
 	put2Attrs := Attributes{"score": 200}
 	// 1 initial put
-	aDocsSinglePut := fixtures{
+	aDocsSingleSet := fixtures{
 		name: "single put, no end",
 		documents: func() []*Document {
 			return []*Document{
@@ -1468,7 +1468,7 @@ func TestHistory(t *testing.T) {
 		},
 	}
 	// 1 initial put with a valid time end
-	aDocsSinglePutWithEnd := fixtures{
+	aDocsSingleSetWithEnd := fixtures{
 		name: "single put, with end",
 		documents: func() []*Document {
 			return []*Document{
@@ -1566,7 +1566,7 @@ func TestHistory(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsSinglePut,
+			fixtures: aDocsSingleSet,
 			testCases: []testCase{
 				{
 					desc: "basic - return 1 version",
@@ -1585,7 +1585,7 @@ func TestHistory(t *testing.T) {
 			},
 		},
 		{
-			fixtures: aDocsSinglePutWithEnd,
+			fixtures: aDocsSingleSetWithEnd,
 			testCases: []testCase{
 				{
 					desc: "basic - return 1 version",

@@ -34,8 +34,8 @@ type DB struct {
 	documents map[string][]*bt.Document // id -> all "versions" of the document
 }
 
-// Find data by id (as of optional valid and transaction times).
-func (db *DB) Find(id string, opts ...bt.ReadOpt) (*bt.Document, error) {
+// Get data by id (as of optional valid and transaction times).
+func (db *DB) Get(id string, opts ...bt.ReadOpt) (*bt.Document, error) {
 	options := db.handleReadOpts(opts)
 
 	vs, ok := db.documents[id]
@@ -62,8 +62,8 @@ func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.Document, error) {
 	return ret, nil
 }
 
-// Put stores attributes (with optional start and end valid time).
-func (db *DB) Put(id string, attributes bt.Attributes, opts ...bt.WriteOpt) error {
+// Set stores attributes (with optional start and end valid time).
+func (db *DB) Set(id string, attributes bt.Attributes, opts ...bt.WriteOpt) error {
 	return db.updateRecords(id, attributes, opts...)
 }
 
@@ -91,7 +91,7 @@ func (db *DB) History(id string) ([]*bt.Document, error) {
 	return out, nil
 }
 
-// common logic of Put and Delete. handling of existing records and "overhand" is the same. If newAttributes is nil,
+// common logic of Set and Delete. handling of existing records and "overhand" is the same. If newAttributes is nil,
 // none is created (Delete case).
 func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.WriteOpt) error {
 	options, now, err := db.handleWriteOpts(opts)
@@ -130,7 +130,7 @@ func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.W
 		}
 	}
 
-	// add newAttributes for Put API, nop for Delete API
+	// add newAttributes for Set API, nop for Delete API
 	if newAttributes != nil {
 		newDoc := &bt.Document{
 			ID:             id,
@@ -167,7 +167,7 @@ func (db *DB) handleWriteOpts(opts []bt.WriteOpt) (options *bt.WriteOptions, now
 		opt(options)
 	}
 
-	// validate write option times. this is relevant for Delete even if Put is validated at resource level
+	// validate write option times. this is relevant for Delete even if Set is validated at resource level
 	if options.EndValidTime != nil && !options.EndValidTime.After(options.ValidTime) {
 		return nil, time.Time{}, errors.New("valid time start must be before end")
 	}

@@ -10,12 +10,12 @@ import (
 // On writes: WithValidTime, WithEndValidTime.
 // On reads: AsOfValidTime, AsOfTransactionTime.
 type DB interface {
-	// Find document by id as of specified times.
-	Find(id string, opts ...ReadOpt) (*Document, error)
+	// Get document by id as of specified times.
+	Get(id string, opts ...ReadOpt) (*Document, error)
 	// List all documents as of specified times.
 	List(opts ...ReadOpt) ([]*Document, error)
-	// Put stores attributes with optional configured valid times.
-	Put(id string, attributes Attributes, opts ...WriteOpt) error
+	// Set stores attributes with optional configured valid times.
+	Set(id string, attributes Attributes, opts ...WriteOpt) error
 	// Delete removes attributes with optional configured valid times.
 	Delete(id string, opts ...WriteOpt) error
 

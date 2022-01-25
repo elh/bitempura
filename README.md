@@ -17,22 +17,22 @@ Because every fact in a bitemporal database has these two dimensions, it enables
 ```go
 // We initialize a DB and start using it like an ordinary key-value store.
 db, err := memory.NewDB()
-err := db.Put("Bob/balance", Attributes{"dollars": 100})
-doc, err := db.Find("Bob/balance")
+err := db.Set("Bob/balance", Attributes{"dollars": 100})
+doc, err := db.Get("Bob/balance")
 err := db.Delete("Alice/balance")
 // and so on...
 
 // We later learn that Bob had a temporary pending charge we missed from Dec 30 to Jan 3. (VT start = Dec 30, VT end = Jan 3)
 // Retroactively record it! This does not change his balance today nor does it destroy any history we had about that period.
-err := db.Put("Bob/balance", Attributes{"dollars": 90}, WithValidTime(dec30), WithEndValidTime(jan3))
+err := db.Set("Bob/balance", Attributes{"dollars": 90}, WithValidTime(dec30), WithEndValidTime(jan3))
 
 // We can at any point seamlessly ask questions about the real world past AND database record past!
 // "What was Bob's balance on Jan 1 as best we knew on Jan 8?" (VT = Jan 1, TT = Jan 8)
-doc, err := db.Find("Bob/balance", AsOfValidTime(jan1), AsOfTransactionTime(jan8))
+doc, err := db.Get("Bob/balance", AsOfValidTime(jan1), AsOfTransactionTime(jan8))
 
 // More time passes and more corrections are made... When trying to make sense of what happened last month, we can ask again:
 // "But what was it on Jan 1 as best we now know?" (VT = Jan 1, TT = now)
-doc2, err := db.Find("Bob/balance", AsOfValidTime(jan1))
+doc2, err := db.Get("Bob/balance", AsOfValidTime(jan1))
 
 // And while we are at it, let's double check all of our transactions and known states for Bob's balance.
 versions, err := db.History("Bob/balance")
@@ -55,12 +55,12 @@ Using a bitemporal database allows you to offload management of temporal applica
 // On writes: WithValidTime, WithEndValidTime
 // On reads: AsOfValidTime, AsOfTransactionTime
 type DB interface {
-	// Find data by id (as of optional valid and transaction times).
-	Find(id string, opts ...ReadOpt) (*Document, error)
+	// Get data by id (as of optional valid and transaction times).
+	Get(id string, opts ...ReadOpt) (*Document, error)
 	// List all data (as of optional valid and transaction times).
 	List(opts ...ReadOpt) ([]*Document, error)
-	// Put stores attributes (with optional start and end valid time).
-	Put(id string, attributes Attributes, opts ...WriteOpt) error
+	// Set stores attributes (with optional start and end valid time).
+	Set(id string, attributes Attributes, opts ...WriteOpt) error
 	// Delete removes attributes (with optional start and end valid time).
 	Delete(id string, opts ...WriteOpt) error
 

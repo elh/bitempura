@@ -27,12 +27,12 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// was recorded entering :LA.
 	day0 := mustParseTime(shortForm, "2018-12-31")
 	db.SetNow(day0)
-	require.Nil(t, db.Put("p2", Attributes{
+	require.Nil(t, db.Set("p2", Attributes{
 		"entry-pt":       "SFO",
 		"arrival-time":   day0,
 		"departure-time": nil,
 	}))
-	require.Nil(t, db.Put("p3", Attributes{
+	require.Nil(t, db.Set("p3", Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day0,
 		"departure-time": nil,
@@ -45,7 +45,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// A single event arrives on Day 2 showing Person 4 arriving at :NY:
 	day2 := day0.AddDate(0, 0, 2)
 	db.SetNow(day2)
-	require.Nil(t, db.Put("p4", Attributes{
+	require.Nil(t, db.Set("p4", Attributes{
 		"entry-pt":       "NY",
 		"arrival-time":   day2,
 		"departure-time": nil,
@@ -56,7 +56,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// document using the Day 3 valid time:
 	day3 := day0.AddDate(0, 0, 3)
 	db.SetNow(day3)
-	require.Nil(t, db.Put("p4", Attributes{
+	require.Nil(t, db.Set("p4", Attributes{
 		"entry-pt":       "NY",
 		"arrival-time":   day2,
 		"departure-time": day3,
@@ -67,7 +67,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// showing that Person 1 entered :NY on Day 0 which must ingest using the Day 0 valid time #inst "2018-12-31":
 	day4 := day0.AddDate(0, 0, 4)
 	db.SetNow(day4)
-	require.Nil(t, db.Put("p1", Attributes{
+	require.Nil(t, db.Set("p1", Attributes{
 		"entry-pt":       "NY",
 		"arrival-time":   day0,
 		"departure-time": nil,
@@ -75,19 +75,19 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 		WithValidTime(day0)))
 	// We then receive an event showing that Person 1 departed from :NY on Day 3, so again we ingest this document using
 	// the corresponding Day 3 valid time:
-	require.Nil(t, db.Put("p1", Attributes{
+	require.Nil(t, db.Set("p1", Attributes{
 		"entry-pt":       "NY",
 		"arrival-time":   day0,
 		"departure-time": day3,
 	},
 		WithValidTime(day3)))
 	// Finally, we receive two events relating to Day 4, which can be ingested using the current valid time:
-	require.Nil(t, db.Put("p1", Attributes{
+	require.Nil(t, db.Set("p1", Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day4,
 		"departure-time": nil,
 	}))
-	require.Nil(t, db.Put("p3", Attributes{
+	require.Nil(t, db.Set("p3", Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day0,
 		"departure-time": day4,
@@ -98,7 +98,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// :SFO on Day 5.
 	day5 := day0.AddDate(0, 0, 5)
 	db.SetNow(day5)
-	require.Nil(t, db.Put("p2", Attributes{
+	require.Nil(t, db.Set("p2", Attributes{
 		"entry-pt":       "SFO",
 		"arrival-time":   day0,
 		"departure-time": day5,
@@ -113,13 +113,13 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// on Day 7, which is how the previous error was noticed.
 	day7 := day0.AddDate(0, 0, 7)
 	db.SetNow(day7)
-	require.Nil(t, db.Put("p3", Attributes{
+	require.Nil(t, db.Set("p3", Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day0,
 		"departure-time": nil,
 	},
 		WithValidTime(day4)))
-	require.Nil(t, db.Put("p3", Attributes{
+	require.Nil(t, db.Set("p3", Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day0,
 		"departure-time": day7,
@@ -130,12 +130,12 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// country again.
 	day8 := day0.AddDate(0, 0, 8)
 	db.SetNow(day8)
-	require.Nil(t, db.Put("p3", Attributes{
+	require.Nil(t, db.Set("p3", Attributes{
 		"entry-pt":       "SFO",
 		"arrival-time":   day8,
 		"departure-time": nil,
 	}))
-	require.Nil(t, db.Put("p4", Attributes{
+	require.Nil(t, db.Set("p4", Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day8,
 		"departure-time": nil,
@@ -145,7 +145,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// On Day 9 we learn that Person 3 also departed on Day 8.
 	day9 := day0.AddDate(0, 0, 9)
 	db.SetNow(day9)
-	require.Nil(t, db.Put("p3", Attributes{
+	require.Nil(t, db.Set("p3", Attributes{
 		"entry-pt":       "SFO",
 		"arrival-time":   day8,
 		"departure-time": day8,
@@ -155,7 +155,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// A single document arrives showing that Person 5 entered at :LA earlier that day.
 	day10 := day0.AddDate(0, 0, 10)
 	db.SetNow(day10)
-	require.Nil(t, db.Put("p5", Attributes{
+	require.Nil(t, db.Set("p5", Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day10,
 		"departure-time": nil,
@@ -165,7 +165,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// Similarly to the previous day, a single document arrives showing that Person 7 entered at :NY earlier that day.
 	day11 := day0.AddDate(0, 0, 11)
 	db.SetNow(day11)
-	require.Nil(t, db.Put("p7", Attributes{
+	require.Nil(t, db.Set("p7", Attributes{
 		"entry-pt":       "NY",
 		"arrival-time":   day11,
 		"departure-time": nil,
@@ -175,7 +175,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// Finally, on Day 12 we learn that Person 6 entered at :NY that same day.
 	day12 := day0.AddDate(0, 0, 12)
 	db.SetNow(day11)
-	require.Nil(t, db.Put("p6", Attributes{
+	require.Nil(t, db.Set("p6", Attributes{
 		"entry-pt":       "NY",
 		"arrival-time":   day12,
 		"departure-time": nil,
@@ -306,14 +306,14 @@ func TestRobinhoodExample(t *testing.T) {
 	// Say you deposit $100 in your account on 3/14.
 	mar14 := mustParseTime(shortForm, "2021-03-14")
 	db.SetNow(mar14)
-	require.Nil(t, db.Put("user-1", Attributes{
+	require.Nil(t, db.Set("user-1", Attributes{
 		"cash-balance": 100,
 		"description":  "Deposit", // description of last event??
 	}))
 	// On 3/20, you purchase 1 share of ABC stock at $25.
 	mar20 := mustParseTime(shortForm, "2021-03-20")
 	db.SetNow(mar20)
-	require.Nil(t, db.Put("user-1", Attributes{
+	require.Nil(t, db.Set("user-1", Attributes{
 		"cash-balance": 75,
 		"description":  "Stock Purchase",
 	}))
@@ -321,7 +321,7 @@ func TestRobinhoodExample(t *testing.T) {
 	// actually $10.
 	mar21 := mustParseTime(shortForm, "2021-03-21")
 	db.SetNow(mar21)
-	require.Nil(t, db.Put("user-1", Attributes{
+	require.Nil(t, db.Set("user-1", Attributes{
 		"cash-balance": 90,
 		"description":  "Price Improvement",
 	},
@@ -329,12 +329,12 @@ func TestRobinhoodExample(t *testing.T) {
 
 	// compacting...
 	findBalance := func(opts ...ReadOpt) interface{} {
-		ret, err := db.Find("user-1", opts...)
+		ret, err := db.Get("user-1", opts...)
 		require.Nil(t, err)
 		return ret.Attributes["cash-balance"]
 	}
-	expectErrFindBalance := func(opts ...ReadOpt) {
-		_, err := db.Find("user-1", opts...)
+	expectErrGetBalance := func(opts ...ReadOpt) {
+		_, err := db.Get("user-1", opts...)
 		require.NotNil(t, err)
 	}
 
@@ -347,7 +347,7 @@ func TestRobinhoodExample(t *testing.T) {
 	// VT=now, TT=3/14. before stock purchase
 	assert.Equal(t, 100, findBalance(AsOfTransactionTime(mar14)))
 	// VT=now, TT=3/13. before any record
-	expectErrFindBalance(AsOfTransactionTime(mar13))
+	expectErrGetBalance(AsOfTransactionTime(mar13))
 	// VT=3/14, TT=now. 3/14 balance as of now
 	assert.Equal(t, 100, findBalance(AsOfValidTime(mar14)))
 	// VT=3/14, TT=3/20. 3/14 balance before price correction
@@ -355,5 +355,5 @@ func TestRobinhoodExample(t *testing.T) {
 	// VT=3/14, TT=3/14. 3/14 balance before stock purchase
 	assert.Equal(t, 100, findBalance(AsOfTransactionTime(mar14), AsOfValidTime(mar14)))
 	// VT=3/14, TT=3/13. 3/14 balance before any record
-	expectErrFindBalance(AsOfTransactionTime(mar13), AsOfValidTime(mar14))
+	expectErrGetBalance(AsOfTransactionTime(mar13), AsOfValidTime(mar14))
 }

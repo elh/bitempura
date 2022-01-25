@@ -1,8 +1,8 @@
 ## TODO:
 - [x] [API v1 done](https://github.com/elh/bitempura/blob/main/db.go). [In-memory implementation](https://github.com/elh/bitempura/blob/main/memory/db.go)
-    - [x] Find
+    - [x] Get
     - [x] List
-    - [x] Put
+    - [x] Set
     - [x] Delete
 - [x] [XTDB, Robinhood example tests pass](https://github.com/elh/bitempura/blob/main/memory/db_examples_test.go)
 - [x] Split out in-memory implementation
