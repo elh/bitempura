@@ -64,12 +64,12 @@ func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.Document, error) {
 
 // Set stores value (with optional start and end valid time).
 func (db *DB) Set(key string, value bt.Value, opts ...bt.WriteOpt) error {
-	return db.updateRecords(key, value, opts...)
+	return db.update(key, value, false, opts...)
 }
 
 // Delete removes value (with optional start and end valid time).
 func (db *DB) Delete(key string, opts ...bt.WriteOpt) error {
-	return db.updateRecords(key, nil, opts...)
+	return db.update(key, nil, true, opts...)
 }
 
 // History returns versions by descending end transaction time, descending end valid time
@@ -91,9 +91,9 @@ func (db *DB) History(key string) ([]*bt.Document, error) {
 	return out, nil
 }
 
-// common logic of Set and Delete. handling of existing records and "overhand" is the same. If newValue is nil,
-// none is created (Delete case).
-func (db *DB) updateRecords(key string, newValue bt.Value, opts ...bt.WriteOpt) error {
+// Common logic of Set and Delete. Handling of existing records and "overhand" is the same. If for Delete, do not create
+// new Document.
+func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.WriteOpt) error {
 	options, now, err := db.handleWriteOpts(opts)
 	if err != nil {
 		return err
@@ -130,16 +130,15 @@ func (db *DB) updateRecords(key string, newValue bt.Value, opts ...bt.WriteOpt) 
 		}
 	}
 
-	// TODO(elh): this needs explicit flag. allow set of nil if they want
-	// add newValue for Set API, nop for Delete API
-	if newValue != nil {
+	// add value for Set API, add nothing for Delete API
+	if !isDelete {
 		newDoc := &bt.Document{
 			Key:            key,
 			TxTimeStart:    now,
 			TxTimeEnd:      nil,
 			ValidTimeStart: options.ValidTime,
 			ValidTimeEnd:   options.EndValidTime,
-			Value:          newValue,
+			Value:          value,
 		}
 		if err := newDoc.Validate(); err != nil {
 			return err

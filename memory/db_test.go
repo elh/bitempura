@@ -186,9 +186,9 @@ func TestGet(t *testing.T) {
 		documents func() []*Document
 	}
 
-	// 1 initial put
+	// 1 initial set
 	aDocsSingleSet := fixtures{
-		name: "single put, no end",
+		name: "single set, no end",
 		documents: func() []*Document {
 			return []*Document{
 				{
@@ -202,9 +202,9 @@ func TestGet(t *testing.T) {
 			}
 		},
 	}
-	// 1 initial put with a valid time end
+	// 1 initial set with a valid time end
 	aDocsSingleSetWithEnd := fixtures{
-		name: "single put, with end",
+		name: "single set, with end",
 		documents: func() []*Document {
 			return []*Document{
 				{
@@ -218,10 +218,10 @@ func TestGet(t *testing.T) {
 			}
 		},
 	}
-	// // 1 initial put and 1 put with later valid time updating score
+	// // 1 initial set and 1 set with later valid time updating score
 	// // this sets a TxTimeEnd for the initial record and creates 2 new ones
 	aDocsUpdated := fixtures{
-		name: "initial put, and then put with later valid time",
+		name: "initial set, and then set with later valid time",
 		documents: func() []*Document {
 			return []*Document{
 				{
@@ -252,7 +252,7 @@ func TestGet(t *testing.T) {
 		},
 	}
 	aDocsDeleted := fixtures{
-		name: "initial put, and then deletion with later valid time",
+		name: "initial set, and then deletion with later valid time",
 		documents: func() []*Document {
 			return []*Document{
 				{
@@ -634,7 +634,7 @@ func TestSet(t *testing.T) {
 			},
 			testCases: []testCase{
 				{
-					desc:  "basic put",
+					desc:  "basic set",
 					now:   &t1,
 					key:   "A",
 					value: "Old",
@@ -652,7 +652,7 @@ func TestSet(t *testing.T) {
 					},
 				},
 				{
-					desc:      "basic put with valid time",
+					desc:      "basic set with valid time",
 					now:       &t1,
 					key:       "A",
 					value:     "Old",
@@ -671,7 +671,7 @@ func TestSet(t *testing.T) {
 					},
 				},
 				{
-					desc:      "basic put with end valid time",
+					desc:      "basic set with end valid time",
 					now:       &t1,
 					key:       "A",
 					value:     "Old",
@@ -690,7 +690,7 @@ func TestSet(t *testing.T) {
 					},
 				},
 				{
-					desc:      "basic put with valid time and end valid time",
+					desc:      "basic set with valid time and end valid time",
 					now:       &t1,
 					key:       "A",
 					value:     "Old",
@@ -704,6 +704,24 @@ func TestSet(t *testing.T) {
 								ValidTimeStart: t0,
 								ValidTimeEnd:   &t3,
 								Value:          "Old",
+							},
+						},
+					},
+				},
+				{
+					desc:  "can set value of nil",
+					now:   &t1,
+					key:   "A",
+					value: nil,
+					findChecks: []findCheck{
+						{
+							expectDocument: &Document{
+								Key:            "A",
+								TxTimeStart:    t1,
+								TxTimeEnd:      nil,
+								ValidTimeStart: t1,
+								ValidTimeEnd:   nil,
+								Value:          nil,
 							},
 						},
 					},
@@ -759,7 +777,7 @@ func TestSet(t *testing.T) {
 			},
 			testCases: []testCase{
 				{
-					desc:  "basic put",
+					desc:  "basic set",
 					now:   &t3,
 					key:   "A",
 					value: "New",
@@ -801,7 +819,7 @@ func TestSet(t *testing.T) {
 					},
 				},
 				{
-					desc:      "put w/ valid time end. original record overhands on both sides",
+					desc:      "set w/ valid time end. original record overhands on both sides",
 					now:       &t4,
 					writeOpts: []WriteOpt{WithValidTime(t2), WithEndValidTime(t3)},
 					key:       "A",
@@ -857,7 +875,7 @@ func TestSet(t *testing.T) {
 					},
 				},
 				{
-					desc:      "put w/ valid time end. no overhang",
+					desc:      "set w/ valid time end. no overhang",
 					now:       &t4,
 					writeOpts: []WriteOpt{WithValidTime(t1)},
 					key:       "A",
@@ -924,7 +942,7 @@ func TestSet(t *testing.T) {
 			},
 			testCases: []testCase{
 				{
-					desc:      "put overlaps multiple versions",
+					desc:      "set overlaps multiple versions",
 					now:       &t4,
 					key:       "A",
 					writeOpts: []WriteOpt{WithValidTime(t2), WithEndValidTime(t4)},
@@ -1157,7 +1175,7 @@ func TestDelete(t *testing.T) {
 					},
 				},
 				{
-					desc:      "put w/ valid time end. original record overhands on both sides",
+					desc:      "set w/ valid time end. original record overhands on both sides",
 					now:       &t4,
 					writeOpts: []WriteOpt{WithValidTime(t2), WithEndValidTime(t3)},
 					key:       "A",
@@ -1205,7 +1223,7 @@ func TestDelete(t *testing.T) {
 					},
 				},
 				{
-					desc:      "put w/ valid time end. no overhang",
+					desc:      "set w/ valid time end. no overhang",
 					now:       &t4,
 					writeOpts: []WriteOpt{WithValidTime(t1)},
 					key:       "A",
@@ -1264,7 +1282,7 @@ func TestDelete(t *testing.T) {
 			},
 			testCases: []testCase{
 				{
-					desc:      "put overlaps multiple versions",
+					desc:      "set overlaps multiple versions",
 					now:       &t4,
 					key:       "A",
 					writeOpts: []WriteOpt{WithValidTime(t2), WithEndValidTime(t4)},
@@ -1377,9 +1395,9 @@ func TestHistory(t *testing.T) {
 		documents func() []*Document
 	}
 
-	// 1 initial put
+	// 1 initial set
 	aDocsSingleSet := fixtures{
-		name: "single put, no end",
+		name: "single set, no end",
 		documents: func() []*Document {
 			return []*Document{
 				{
@@ -1393,9 +1411,9 @@ func TestHistory(t *testing.T) {
 			}
 		},
 	}
-	// 1 initial put with a valid time end
+	// 1 initial set with a valid time end
 	aDocsSingleSetWithEnd := fixtures{
-		name: "single put, with end",
+		name: "single set, with end",
 		documents: func() []*Document {
 			return []*Document{
 				{
@@ -1409,10 +1427,10 @@ func TestHistory(t *testing.T) {
 			}
 		},
 	}
-	// // 1 initial put and 1 put with later valid time updating score
+	// // 1 initial set and 1 set with later valid time updating score
 	// // this sets a TxTimeEnd for the initial record and creates 2 new ones
 	aDocsUpdated := fixtures{
-		name: "initial put, and then put with later valid time",
+		name: "initial set, and then set with later valid time",
 		documents: func() []*Document {
 			return []*Document{
 				{
@@ -1443,7 +1461,7 @@ func TestHistory(t *testing.T) {
 		},
 	}
 	aDocsDeleted := fixtures{
-		name: "initial put, and then deletion with later valid time",
+		name: "initial set, and then deletion with later valid time",
 		documents: func() []*Document {
 			return []*Document{
 				{
