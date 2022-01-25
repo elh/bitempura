@@ -131,7 +131,7 @@ func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.Write
 		}
 	}
 
-	// add value for Set API, add nothing for Delete API
+	// add value for Set, add nothing for Delete
 	if !isDelete {
 		newV := &bt.VersionedKV{
 			Key:            key,

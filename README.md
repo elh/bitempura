@@ -3,7 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/elh/bitempura.svg)](https://pkg.go.dev/github.com/elh/bitempura)
 [![Build Status](https://github.com/elh/bitempura/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/elh/bitempura/actions/workflows/go.yml?query=branch%3Amain)
 
-**Bitempura.DB is a [bitemporal](https://en.wikipedia.org/wiki/Bitemporal_Modeling) key-value database with an [in-memory reference implementation](https://github.com/elh/bitempura/blob/main/memory/db.go).**
+**Bitempura.DB is a simple, [in-memory](https://github.com/elh/bitempura/blob/main/memory/db.go) [bitemporal](https://en.wikipedia.org/wiki/Bitemporal_Modeling) key-value database.**
 
 <br />
 
@@ -45,9 +45,6 @@ Using a bitemporal database allows you to offload management of temporal applica
 
 ## Design
 
-* Initial DB API is inspired by XTDB (and Datomic).
-* Record layout is inspired by Snodgrass' SQL implementations.
-
 ```go
 // DB for bitemporal data.
 //
@@ -84,12 +81,15 @@ type VersionedKV struct {
 type Value interface{}
 ```
 
+* DB interface is inspired by XTDB (and Datomic).
+* Storage model is inspired by Snodgrass' SQL implementations.
+
 <br />
 
 ## Author
 
 I'm learning about [bitemporal databases](https://en.wikipedia.org/wiki/Bitemporal_Modeling) and thought the best way to build intuition about their internal design was by building a simple one for myself. My goals are:
-* Making this a viable, standalone lib
+* Sharing a viable, standalone key-value store lib
 * Creating artifacts to teach others about temporal data
 * Launching off this to new tools for gracefully extending existing SQL databases with bitemporality
 
