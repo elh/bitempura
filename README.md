@@ -55,17 +55,17 @@ Using a bitemporal database allows you to offload management of temporal applica
 // On writes: WithValidTime, WithEndValidTime
 // On reads: AsOfValidTime, AsOfTransactionTime
 type DB interface {
-	// Get data by id (as of optional valid and transaction times).
-	Get(id string, opts ...ReadOpt) (*Document, error)
+	// Get data by key (as of optional valid and transaction times).
+	Get(key string, opts ...ReadOpt) (*Document, error)
 	// List all data (as of optional valid and transaction times).
 	List(opts ...ReadOpt) ([]*Document, error)
 	// Set stores attributes (with optional start and end valid time).
-	Set(id string, attributes Attributes, opts ...WriteOpt) error
+	Set(key string, attributes Attributes, opts ...WriteOpt) error
 	// Delete removes attributes (with optional start and end valid time).
-	Delete(id string, opts ...WriteOpt) error
+	Delete(key string, opts ...WriteOpt) error
 
 	// History returns versions by descending end transaction time, descending end valid time
-	History(id string) ([]*Document, error)
+	History(key string) ([]*Document, error)
 }
 ```
 

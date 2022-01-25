@@ -10,17 +10,17 @@ import (
 // On writes: WithValidTime, WithEndValidTime.
 // On reads: AsOfValidTime, AsOfTransactionTime.
 type DB interface {
-	// Get document by id as of specified times.
-	Get(id string, opts ...ReadOpt) (*Document, error)
+	// Get document by key as of specified times.
+	Get(key string, opts ...ReadOpt) (*Document, error)
 	// List all documents as of specified times.
 	List(opts ...ReadOpt) ([]*Document, error)
 	// Set stores attributes with optional configured valid times.
-	Set(id string, attributes Attributes, opts ...WriteOpt) error
+	Set(key string, attributes Attributes, opts ...WriteOpt) error
 	// Delete removes attributes with optional configured valid times.
-	Delete(id string, opts ...WriteOpt) error
+	Delete(key string, opts ...WriteOpt) error
 
 	// History returns versions by descending end transaction time, descending end valid time
-	History(id string) ([]*Document, error)
+	History(key string) ([]*Document, error)
 }
 
 type WriteOptions struct {

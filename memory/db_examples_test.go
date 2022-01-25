@@ -193,25 +193,25 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	out, err := db.List(AsOfValidTime(day2), AsOfTransactionTime(day3))
 	require.Nil(t, err)
 	require.Len(t, out, 3)
-	outByID := sortDocumentsByID(out)
-	assert.Equal(t, "p2", outByID[0].ID)
+	outByKey := sortDocumentsByKey(out)
+	assert.Equal(t, "p2", outByKey[0].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "SFO",
 		"arrival-time":   day0,
 		"departure-time": nil,
-	}, outByID[0].Attributes)
-	assert.Equal(t, "p3", outByID[1].ID)
+	}, outByKey[0].Attributes)
+	assert.Equal(t, "p3", outByKey[1].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day0,
 		"departure-time": nil,
-	}, outByID[1].Attributes)
-	assert.Equal(t, "p4", outByID[2].ID)
+	}, outByKey[1].Attributes)
+	assert.Equal(t, "p4", outByKey[2].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "NY",
 		"arrival-time":   day2,
 		"departure-time": nil,
-	}, outByID[2].Attributes)
+	}, outByKey[2].Attributes)
 
 	// -------------------- My extra tests --------------------
 	// elh: this was actually quite simple. the times are so early that they disregard so many edits. let's do a few
@@ -221,79 +221,79 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	out, err = db.List(AsOfValidTime(day2))
 	require.Nil(t, err)
 	require.Len(t, out, 4)
-	outByID = sortDocumentsByID(out)
-	assert.Equal(t, "p1", outByID[0].ID) // this was not known in the original query. p1 info was recorded TT = day 4
+	outByKey = sortDocumentsByKey(out)
+	assert.Equal(t, "p1", outByKey[0].Key) // this was not known in the original query. p1 info was recorded TT = day 4
 	assert.Equal(t, Attributes{
 		"entry-pt":       "NY",
 		"arrival-time":   day0,
 		"departure-time": nil,
-	}, outByID[0].Attributes)
-	assert.Equal(t, "p2", outByID[1].ID)
+	}, outByKey[0].Attributes)
+	assert.Equal(t, "p2", outByKey[1].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "SFO",
 		"arrival-time":   day0,
 		"departure-time": nil,
-	}, outByID[1].Attributes)
-	assert.Equal(t, "p3", outByID[2].ID)
+	}, outByKey[1].Attributes)
+	assert.Equal(t, "p3", outByKey[2].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day0,
 		"departure-time": nil,
-	}, outByID[2].Attributes)
-	assert.Equal(t, "p4", outByID[3].ID)
+	}, outByKey[2].Attributes)
+	assert.Equal(t, "p4", outByKey[3].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "NY",
 		"arrival-time":   day2,
 		"departure-time": nil,
-	}, outByID[3].Attributes)
+	}, outByKey[3].Attributes)
 
 	// state of db at now (VT = day 12, TT = day 12)
 	out, err = db.List()
 	require.Nil(t, err)
 	require.Len(t, out, 7)
-	outByID = sortDocumentsByID(out)
-	assert.Equal(t, "p1", outByID[0].ID)
+	outByKey = sortDocumentsByKey(out)
+	assert.Equal(t, "p1", outByKey[0].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day4,
 		"departure-time": nil,
-	}, outByID[0].Attributes)
-	assert.Equal(t, "p2", outByID[1].ID)
+	}, outByKey[0].Attributes)
+	assert.Equal(t, "p2", outByKey[1].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "SFO",
 		"arrival-time":   day0,
 		"departure-time": day5,
-	}, outByID[1].Attributes)
-	assert.Equal(t, "p3", outByID[2].ID)
+	}, outByKey[1].Attributes)
+	assert.Equal(t, "p3", outByKey[2].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "SFO",
 		"arrival-time":   day8,
 		"departure-time": day8,
-	}, outByID[2].Attributes)
-	assert.Equal(t, "p4", outByID[3].ID)
+	}, outByKey[2].Attributes)
+	assert.Equal(t, "p4", outByKey[3].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day8,
 		"departure-time": nil,
-	}, outByID[3].Attributes)
-	assert.Equal(t, "p5", outByID[4].ID)
+	}, outByKey[3].Attributes)
+	assert.Equal(t, "p5", outByKey[4].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "LA",
 		"arrival-time":   day10,
 		"departure-time": nil,
-	}, outByID[4].Attributes)
-	assert.Equal(t, "p6", outByID[5].ID)
+	}, outByKey[4].Attributes)
+	assert.Equal(t, "p6", outByKey[5].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "NY",
 		"arrival-time":   day12,
 		"departure-time": nil,
-	}, outByID[5].Attributes)
-	assert.Equal(t, "p7", outByID[6].ID)
+	}, outByKey[5].Attributes)
+	assert.Equal(t, "p7", outByKey[6].Key)
 	assert.Equal(t, Attributes{
 		"entry-pt":       "NY",
 		"arrival-time":   day11,
 		"departure-time": nil,
-	}, outByID[6].Attributes)
+	}, outByKey[6].Attributes)
 }
 
 // Robinhood Eng blog > Tracking Temporal Data at Robinhood

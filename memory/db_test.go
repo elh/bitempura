@@ -75,7 +75,7 @@ func TestConstructor(t *testing.T) {
 				documents: func() []*Document {
 					return []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -83,7 +83,7 @@ func TestConstructor(t *testing.T) {
 							Attributes:     Attributes{"dimensions": 1},
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t2,
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t2,
@@ -105,7 +105,7 @@ func TestConstructor(t *testing.T) {
 				documents: func() []*Document {
 					return []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      &t2,
 							ValidTimeStart: t2,
@@ -113,7 +113,7 @@ func TestConstructor(t *testing.T) {
 							Attributes:     Attributes{"dimensions": 1},
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t2,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -135,7 +135,7 @@ func TestConstructor(t *testing.T) {
 				documents: func() []*Document {
 					return []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -143,7 +143,7 @@ func TestConstructor(t *testing.T) {
 							Attributes:     Attributes{"dimensions": 1},
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t2,
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t2,
@@ -192,7 +192,7 @@ func TestGet(t *testing.T) {
 		documents: func() []*Document {
 			return []*Document{
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t1,
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
@@ -208,7 +208,7 @@ func TestGet(t *testing.T) {
 		documents: func() []*Document {
 			return []*Document{
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t1,
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
@@ -225,7 +225,7 @@ func TestGet(t *testing.T) {
 		documents: func() []*Document {
 			return []*Document{
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t1,
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
@@ -233,7 +233,7 @@ func TestGet(t *testing.T) {
 					Attributes:     put1Attrs,
 				},
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t3,
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
@@ -241,7 +241,7 @@ func TestGet(t *testing.T) {
 					Attributes:     put1Attrs,
 				},
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t3,
 					TxTimeEnd:      nil,
 					ValidTimeStart: t3,
@@ -256,7 +256,7 @@ func TestGet(t *testing.T) {
 		documents: func() []*Document {
 			return []*Document{
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t1,
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
@@ -264,7 +264,7 @@ func TestGet(t *testing.T) {
 					Attributes:     put1Attrs,
 				},
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t3,
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
@@ -464,7 +464,7 @@ func TestList(t *testing.T) {
 	}
 
 	aDoc := &Document{
-		ID:             "A",
+		Key:            "A",
 		TxTimeStart:    t1,
 		TxTimeEnd:      nil,
 		ValidTimeStart: t1,
@@ -482,7 +482,7 @@ func TestList(t *testing.T) {
 		},
 	}
 	bDoc := &Document{
-		ID:             "B",
+		Key:            "B",
 		TxTimeStart:    t1,
 		TxTimeEnd:      &t3,
 		ValidTimeStart: t1,
@@ -492,7 +492,7 @@ func TestList(t *testing.T) {
 		},
 	}
 	bDocUpdate1 := &Document{
-		ID:             "B",
+		Key:            "B",
 		TxTimeStart:    t3,
 		TxTimeEnd:      nil,
 		ValidTimeStart: t1,
@@ -502,7 +502,7 @@ func TestList(t *testing.T) {
 		},
 	}
 	bDocUpdate2 := &Document{
-		ID:             "B",
+		Key:            "B",
 		TxTimeStart:    t3,
 		TxTimeEnd:      nil,
 		ValidTimeStart: t3,
@@ -593,16 +593,16 @@ func TestList(t *testing.T) {
 				if len(tC.expectDocuments) == 0 {
 					return
 				}
-				assert.Equal(t, sortDocumentsByID(tC.expectDocuments), sortDocumentsByID(ret))
+				assert.Equal(t, sortDocumentsByKey(tC.expectDocuments), sortDocumentsByKey(ret))
 			})
 		}
 	}
 }
 
-func sortDocumentsByID(ds []*Document) []*Document {
+func sortDocumentsByKey(ds []*Document) []*Document {
 	out := make([]*Document, len(ds))
 	copy(out, ds)
-	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	sort.Slice(out, func(i, j int) bool { return out[i].Key < out[j].Key })
 	return out
 }
 
@@ -649,7 +649,7 @@ func TestSet(t *testing.T) {
 					findChecks: []findCheck{
 						{
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
@@ -670,7 +670,7 @@ func TestSet(t *testing.T) {
 					findChecks: []findCheck{
 						{
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t0,
@@ -691,7 +691,7 @@ func TestSet(t *testing.T) {
 					findChecks: []findCheck{
 						{
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
@@ -712,7 +712,7 @@ func TestSet(t *testing.T) {
 					findChecks: []findCheck{
 						{
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t0,
@@ -763,7 +763,7 @@ func TestSet(t *testing.T) {
 				documents: func() []*Document {
 					return []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -784,7 +784,7 @@ func TestSet(t *testing.T) {
 					findChecks: []findCheck{
 						{
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t3,
@@ -798,7 +798,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfValidTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
@@ -812,7 +812,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t3,
 								ValidTimeStart: t1,
@@ -834,7 +834,7 @@ func TestSet(t *testing.T) {
 						// query as of now for valid time and transaction time. change not visible
 						{
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t3,
@@ -848,7 +848,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfValidTime(t1)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
@@ -862,7 +862,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
@@ -876,7 +876,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfValidTime(t2), AsOfTransactionTime(t5)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t2,
@@ -898,7 +898,7 @@ func TestSet(t *testing.T) {
 						// query as of now for valid time and transaction time. change visible
 						{
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
@@ -912,7 +912,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
@@ -932,7 +932,7 @@ func TestSet(t *testing.T) {
 				documents: func() []*Document {
 					return []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t1,
@@ -940,7 +940,7 @@ func TestSet(t *testing.T) {
 							Attributes:     Attributes{"COUNT": 1},
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t3,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -948,7 +948,7 @@ func TestSet(t *testing.T) {
 							Attributes:     Attributes{"COUNT": 1},
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t3,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
@@ -970,7 +970,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t5)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t4,
@@ -984,7 +984,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t5), AsOfValidTime(t1)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
@@ -998,7 +998,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t5), AsOfValidTime(t3)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t2,
@@ -1012,7 +1012,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t3), AsOfValidTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
@@ -1026,7 +1026,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t3), AsOfValidTime(t4)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t3,
@@ -1040,7 +1040,7 @@ func TestSet(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2), AsOfValidTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t3,
 								ValidTimeStart: t1,
@@ -1138,7 +1138,7 @@ func TestDelete(t *testing.T) {
 				documents: func() []*Document {
 					return []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -1184,7 +1184,7 @@ func TestDelete(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfValidTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
@@ -1198,7 +1198,7 @@ func TestDelete(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t3,
 								ValidTimeStart: t1,
@@ -1219,7 +1219,7 @@ func TestDelete(t *testing.T) {
 						// query as of now for valid time and transaction time. change not visible
 						{
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t3,
@@ -1233,7 +1233,7 @@ func TestDelete(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfValidTime(t1)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
@@ -1247,7 +1247,7 @@ func TestDelete(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
@@ -1278,7 +1278,7 @@ func TestDelete(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
@@ -1298,7 +1298,7 @@ func TestDelete(t *testing.T) {
 				documents: func() []*Document {
 					return []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t1,
@@ -1306,7 +1306,7 @@ func TestDelete(t *testing.T) {
 							Attributes:     Attributes{"COUNT": 1},
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t3,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -1314,7 +1314,7 @@ func TestDelete(t *testing.T) {
 							Attributes:     Attributes{"COUNT": 1},
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t3,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
@@ -1335,7 +1335,7 @@ func TestDelete(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t5)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t4,
@@ -1349,7 +1349,7 @@ func TestDelete(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t5), AsOfValidTime(t1)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t4,
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
@@ -1368,7 +1368,7 @@ func TestDelete(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t3), AsOfValidTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
@@ -1382,7 +1382,7 @@ func TestDelete(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t3), AsOfValidTime(t4)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t3,
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t3,
@@ -1396,7 +1396,7 @@ func TestDelete(t *testing.T) {
 						{
 							readOpts: []ReadOpt{AsOfTransactionTime(t2), AsOfValidTime(t2)},
 							expectDocument: &Document{
-								ID:             "A",
+								Key:            "A",
 								TxTimeStart:    t1,
 								TxTimeEnd:      &t3,
 								ValidTimeStart: t1,
@@ -1457,7 +1457,7 @@ func TestHistory(t *testing.T) {
 		documents: func() []*Document {
 			return []*Document{
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t1,
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
@@ -1473,7 +1473,7 @@ func TestHistory(t *testing.T) {
 		documents: func() []*Document {
 			return []*Document{
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t1,
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
@@ -1490,7 +1490,7 @@ func TestHistory(t *testing.T) {
 		documents: func() []*Document {
 			return []*Document{
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t1,
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
@@ -1498,7 +1498,7 @@ func TestHistory(t *testing.T) {
 					Attributes:     put1Attrs,
 				},
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t3,
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
@@ -1506,7 +1506,7 @@ func TestHistory(t *testing.T) {
 					Attributes:     put1Attrs,
 				},
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t3,
 					TxTimeEnd:      nil,
 					ValidTimeStart: t3,
@@ -1521,7 +1521,7 @@ func TestHistory(t *testing.T) {
 		documents: func() []*Document {
 			return []*Document{
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t1,
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
@@ -1529,7 +1529,7 @@ func TestHistory(t *testing.T) {
 					Attributes:     put1Attrs,
 				},
 				{
-					ID:             "A",
+					Key:            "A",
 					TxTimeStart:    t3,
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
@@ -1573,7 +1573,7 @@ func TestHistory(t *testing.T) {
 					id:   "A",
 					expectDocuments: []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -1592,7 +1592,7 @@ func TestHistory(t *testing.T) {
 					id:   "A",
 					expectDocuments: []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -1611,7 +1611,7 @@ func TestHistory(t *testing.T) {
 					id:   "A",
 					expectDocuments: []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t3,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
@@ -1619,7 +1619,7 @@ func TestHistory(t *testing.T) {
 							Attributes:     put2Attrs,
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t3,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -1627,7 +1627,7 @@ func TestHistory(t *testing.T) {
 							Attributes:     put1Attrs,
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t1,
@@ -1646,7 +1646,7 @@ func TestHistory(t *testing.T) {
 					id:   "A",
 					expectDocuments: []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t3,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -1654,7 +1654,7 @@ func TestHistory(t *testing.T) {
 							Attributes:     put1Attrs,
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t1,
@@ -1671,7 +1671,7 @@ func TestHistory(t *testing.T) {
 				documents: func() []*Document {
 					return []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t2,
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t3,
@@ -1679,7 +1679,7 @@ func TestHistory(t *testing.T) {
 							Attributes:     put1Attrs,
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -1695,7 +1695,7 @@ func TestHistory(t *testing.T) {
 					id:   "A",
 					expectDocuments: []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -1703,7 +1703,7 @@ func TestHistory(t *testing.T) {
 							Attributes:     put2Attrs,
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t2,
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t3,
@@ -1720,7 +1720,7 @@ func TestHistory(t *testing.T) {
 				documents: func() []*Document {
 					return []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
@@ -1728,7 +1728,7 @@ func TestHistory(t *testing.T) {
 							Attributes:     put2Attrs,
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t2,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
@@ -1744,7 +1744,7 @@ func TestHistory(t *testing.T) {
 					id:   "A",
 					expectDocuments: []*Document{
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t2,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
@@ -1752,7 +1752,7 @@ func TestHistory(t *testing.T) {
 							Attributes:     put1Attrs,
 						},
 						{
-							ID:             "A",
+							Key:            "A",
 							TxTimeStart:    t1,
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,

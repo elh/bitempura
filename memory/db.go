@@ -13,7 +13,7 @@ var _ bt.DB = (*DB)(nil)
 
 // NewDB constructs a in-memory bitemporal DB.
 //
-// The database may optionally be seeded with Document "versions". No two Documents for the same id may overlap both
+// The database may optionally be seeded with Document "versions". No two Documents for the same key may overlap both
 // transaction time and valid time. Transaction times (which normally default to now) may be controlled with SetNow.
 func NewDB(documents ...*bt.Document) (*DB, error) {
 	db := &DB{documents: map[string][]*bt.Document{}}
@@ -21,24 +21,24 @@ func NewDB(documents ...*bt.Document) (*DB, error) {
 		if err := d.Validate(); err != nil {
 			return nil, err
 		}
-		if err := db.assertNoOverlap(d, db.documents[d.ID]); err != nil {
+		if err := db.assertNoOverlap(d, db.documents[d.Key]); err != nil {
 			return nil, err
 		}
-		db.documents[d.ID] = append(db.documents[d.ID], d)
+		db.documents[d.Key] = append(db.documents[d.Key], d)
 	}
 	return db, nil
 }
 
 type DB struct {
 	now       *time.Time
-	documents map[string][]*bt.Document // id -> all "versions" of the document
+	documents map[string][]*bt.Document // key -> all "versions" of the document
 }
 
-// Get data by id (as of optional valid and transaction times).
-func (db *DB) Get(id string, opts ...bt.ReadOpt) (*bt.Document, error) {
+// Get data by key (as of optional valid and transaction times).
+func (db *DB) Get(key string, opts ...bt.ReadOpt) (*bt.Document, error) {
 	options := db.handleReadOpts(opts)
 
-	vs, ok := db.documents[id]
+	vs, ok := db.documents[key]
 	if !ok {
 		return nil, bt.ErrNotFound
 	}
@@ -63,18 +63,18 @@ func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.Document, error) {
 }
 
 // Set stores attributes (with optional start and end valid time).
-func (db *DB) Set(id string, attributes bt.Attributes, opts ...bt.WriteOpt) error {
-	return db.updateRecords(id, attributes, opts...)
+func (db *DB) Set(key string, attributes bt.Attributes, opts ...bt.WriteOpt) error {
+	return db.updateRecords(key, attributes, opts...)
 }
 
 // Delete removes attributes (with optional start and end valid time).
-func (db *DB) Delete(id string, opts ...bt.WriteOpt) error {
-	return db.updateRecords(id, nil, opts...)
+func (db *DB) Delete(key string, opts ...bt.WriteOpt) error {
+	return db.updateRecords(key, nil, opts...)
 }
 
 // History returns versions by descending end transaction time, descending end valid time
-func (db *DB) History(id string) ([]*bt.Document, error) {
-	vs, ok := db.documents[id]
+func (db *DB) History(key string) ([]*bt.Document, error) {
+	vs, ok := db.documents[key]
 	if !ok {
 		return nil, bt.ErrNotFound
 	}
@@ -93,13 +93,13 @@ func (db *DB) History(id string) ([]*bt.Document, error) {
 
 // common logic of Set and Delete. handling of existing records and "overhand" is the same. If newAttributes is nil,
 // none is created (Delete case).
-func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.WriteOpt) error {
+func (db *DB) updateRecords(key string, newAttributes bt.Attributes, opts ...bt.WriteOpt) error {
 	options, now, err := db.handleWriteOpts(opts)
 	if err != nil {
 		return err
 	}
 
-	vs, ok := db.documents[id]
+	vs, ok := db.documents[key]
 	if ok {
 		overlappingVs, err := db.findOverlappingValidTimeVersions(vs, options.ValidTime, options.EndValidTime, now)
 		if err != nil {
@@ -112,7 +112,7 @@ func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.W
 
 			for _, overhang := range overlappingV.overhangs {
 				overhangDoc := &bt.Document{
-					ID:             id,
+					Key:            key,
 					TxTimeStart:    now,
 					TxTimeEnd:      nil,
 					ValidTimeStart: overhang.start,
@@ -122,10 +122,10 @@ func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.W
 				if err := overhangDoc.Validate(); err != nil {
 					return err
 				}
-				if err := db.assertNoOverlap(overhangDoc, db.documents[id]); err != nil {
+				if err := db.assertNoOverlap(overhangDoc, db.documents[key]); err != nil {
 					return err
 				}
-				db.documents[id] = append(db.documents[id], overhangDoc)
+				db.documents[key] = append(db.documents[key], overhangDoc)
 			}
 		}
 	}
@@ -133,7 +133,7 @@ func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.W
 	// add newAttributes for Set API, nop for Delete API
 	if newAttributes != nil {
 		newDoc := &bt.Document{
-			ID:             id,
+			Key:            key,
 			TxTimeStart:    now,
 			TxTimeEnd:      nil,
 			ValidTimeStart: options.ValidTime,
@@ -143,10 +143,10 @@ func (db *DB) updateRecords(id string, newAttributes bt.Attributes, opts ...bt.W
 		if err := newDoc.Validate(); err != nil {
 			return err
 		}
-		if err := db.assertNoOverlap(newDoc, db.documents[id]); err != nil {
+		if err := db.assertNoOverlap(newDoc, db.documents[key]); err != nil {
 			return err
 		}
-		db.documents[id] = append(db.documents[id], newDoc)
+		db.documents[key] = append(db.documents[key], newDoc)
 	}
 
 	return nil

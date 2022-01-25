@@ -9,7 +9,7 @@ import (
 type Document struct {
 	// TODO(elh): Separate "db" model and "storage" model. The breakdown of "documents" and assignment of tx times is
 	// an internal detail that is implementation specific
-	ID             string
+	Key            string
 	TxTimeStart    time.Time
 	TxTimeEnd      *time.Time
 	ValidTimeStart time.Time
@@ -22,8 +22,8 @@ type Attributes map[string]interface{}
 
 // Validate a document
 func (d *Document) Validate() error {
-	if d.ID == "" {
-		return errors.New("id is required")
+	if d.Key == "" {
+		return errors.New("key is required")
 	}
 	if d.TxTimeStart.IsZero() {
 		return errors.New("transaction time start cannot be zero value")
