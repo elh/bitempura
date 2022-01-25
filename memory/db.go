@@ -62,12 +62,12 @@ func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.Document, error) {
 	return ret, nil
 }
 
-// Set stores attributes (with optional start and end valid time).
-func (db *DB) Set(key string, attributes bt.Attributes, opts ...bt.WriteOpt) error {
-	return db.updateRecords(key, attributes, opts...)
+// Set stores value (with optional start and end valid time).
+func (db *DB) Set(key string, value bt.Value, opts ...bt.WriteOpt) error {
+	return db.updateRecords(key, value, opts...)
 }
 
-// Delete removes attributes (with optional start and end valid time).
+// Delete removes value (with optional start and end valid time).
 func (db *DB) Delete(key string, opts ...bt.WriteOpt) error {
 	return db.updateRecords(key, nil, opts...)
 }
@@ -91,9 +91,9 @@ func (db *DB) History(key string) ([]*bt.Document, error) {
 	return out, nil
 }
 
-// common logic of Set and Delete. handling of existing records and "overhand" is the same. If newAttributes is nil,
+// common logic of Set and Delete. handling of existing records and "overhand" is the same. If newValue is nil,
 // none is created (Delete case).
-func (db *DB) updateRecords(key string, newAttributes bt.Attributes, opts ...bt.WriteOpt) error {
+func (db *DB) updateRecords(key string, newValue bt.Value, opts ...bt.WriteOpt) error {
 	options, now, err := db.handleWriteOpts(opts)
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func (db *DB) updateRecords(key string, newAttributes bt.Attributes, opts ...bt.
 					TxTimeEnd:      nil,
 					ValidTimeStart: overhang.start,
 					ValidTimeEnd:   overhang.end,
-					Attributes:     overlappingV.document.Attributes,
+					Value:          overlappingV.document.Value,
 				}
 				if err := overhangDoc.Validate(); err != nil {
 					return err
@@ -130,15 +130,16 @@ func (db *DB) updateRecords(key string, newAttributes bt.Attributes, opts ...bt.
 		}
 	}
 
-	// add newAttributes for Set API, nop for Delete API
-	if newAttributes != nil {
+	// TODO(elh): this needs explicit flag. allow set of nil if they want
+	// add newValue for Set API, nop for Delete API
+	if newValue != nil {
 		newDoc := &bt.Document{
 			Key:            key,
 			TxTimeStart:    now,
 			TxTimeEnd:      nil,
 			ValidTimeStart: options.ValidTime,
 			ValidTimeEnd:   options.EndValidTime,
-			Attributes:     newAttributes,
+			Value:          newValue,
 		}
 		if err := newDoc.Validate(); err != nil {
 			return err

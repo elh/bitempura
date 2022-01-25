@@ -42,6 +42,8 @@ func toJSON(v interface{}) string {
 	return string(out)
 }
 
+// values can be any type but I will standardize on "Old", "New", and "Newest" in these tests for legibility
+
 func TestConstructor(t *testing.T) {
 	type fixtures struct {
 		name string
@@ -80,7 +82,7 @@ func TestConstructor(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t2,
-							Attributes:     Attributes{"dimensions": 1},
+							Value:          "Old",
 						},
 						{
 							Key:            "A",
@@ -88,7 +90,7 @@ func TestConstructor(t *testing.T) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t2,
 							ValidTimeEnd:   nil,
-							Attributes:     Attributes{"dimensions": 2},
+							Value:          "New",
 						},
 					}
 				},
@@ -110,7 +112,7 @@ func TestConstructor(t *testing.T) {
 							TxTimeEnd:      &t2,
 							ValidTimeStart: t2,
 							ValidTimeEnd:   &t4,
-							Attributes:     Attributes{"dimensions": 1},
+							Value:          "Old",
 						},
 						{
 							Key:            "A",
@@ -118,7 +120,7 @@ func TestConstructor(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t3,
-							Attributes:     Attributes{"dimensions": 2},
+							Value:          "New",
 						},
 					}
 				},
@@ -140,7 +142,7 @@ func TestConstructor(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t3,
-							Attributes:     Attributes{"dimensions": 1},
+							Value:          "Old",
 						},
 						{
 							Key:            "A",
@@ -148,7 +150,7 @@ func TestConstructor(t *testing.T) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t2,
 							ValidTimeEnd:   nil,
-							Attributes:     Attributes{"dimensions": 2},
+							Value:          "New",
 						},
 					}
 				},
@@ -184,8 +186,6 @@ func TestGet(t *testing.T) {
 		documents func() []*Document
 	}
 
-	put1Attrs := Attributes{"score": 100}
-	put2Attrs := Attributes{"score": 200}
 	// 1 initial put
 	aDocsSingleSet := fixtures{
 		name: "single put, no end",
@@ -197,7 +197,7 @@ func TestGet(t *testing.T) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 			}
 		},
@@ -213,7 +213,7 @@ func TestGet(t *testing.T) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 			}
 		},
@@ -230,7 +230,7 @@ func TestGet(t *testing.T) {
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 				{
 					Key:            "A",
@@ -238,7 +238,7 @@ func TestGet(t *testing.T) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 				{
 					Key:            "A",
@@ -246,7 +246,7 @@ func TestGet(t *testing.T) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t3,
 					ValidTimeEnd:   nil,
-					Attributes:     put2Attrs,
+					Value:          "New",
 				},
 			}
 		},
@@ -261,7 +261,7 @@ func TestGet(t *testing.T) {
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 				{
 					Key:            "A",
@@ -269,7 +269,7 @@ func TestGet(t *testing.T) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 			}
 		},
@@ -277,11 +277,11 @@ func TestGet(t *testing.T) {
 
 	type testCase struct {
 		desc              string
-		id                string
+		key               string
 		readOpts          []ReadOpt
 		expectErrNotFound bool
 		expectErr         bool // this is exclusive of ErrNotFound. this is for unexepcted errors
-		expectAttributes  Attributes
+		expectValue       Value
 	}
 
 	testCaseSets := []struct {
@@ -296,7 +296,7 @@ func TestGet(t *testing.T) {
 			testCases: []testCase{
 				{
 					desc:              "not found",
-					id:                "A",
+					key:               "A",
 					expectErrNotFound: true,
 				},
 			},
@@ -305,45 +305,45 @@ func TestGet(t *testing.T) {
 			fixtures: aDocsSingleSet,
 			testCases: []testCase{
 				{
-					desc:             "found - default as of times",
-					id:               "A",
-					expectAttributes: put1Attrs,
+					desc:        "found - default as of times",
+					key:         "A",
+					expectValue: "Old",
 				},
 				{
 					desc:              "not found - as of valid time T before valid time start",
-					id:                "A",
+					key:               "A",
 					readOpts:          []ReadOpt{AsOfValidTime(t0)},
 					expectErrNotFound: true,
 				},
 				{
 					desc:              "not found - as of tx time T before tx time start",
-					id:                "A",
+					key:               "A",
 					readOpts:          []ReadOpt{AsOfTransactionTime(t0)},
 					expectErrNotFound: true,
 				},
 				{
-					desc:             "found - as of valid time T in range",
-					id:               "A",
-					readOpts:         []ReadOpt{AsOfValidTime(t2)},
-					expectAttributes: put1Attrs,
+					desc:        "found - as of valid time T in range",
+					key:         "A",
+					readOpts:    []ReadOpt{AsOfValidTime(t2)},
+					expectValue: "Old",
 				},
 				{
-					desc:             "found - as of tx time T in range",
-					id:               "A",
-					readOpts:         []ReadOpt{AsOfTransactionTime(t2)},
-					expectAttributes: put1Attrs,
+					desc:        "found - as of tx time T in range",
+					key:         "A",
+					readOpts:    []ReadOpt{AsOfTransactionTime(t2)},
+					expectValue: "Old",
 				},
 				{
-					desc:             "found - as of valid time T in range (inclusive)",
-					id:               "A",
-					readOpts:         []ReadOpt{AsOfValidTime(t1)},
-					expectAttributes: put1Attrs,
+					desc:        "found - as of valid time T in range (inclusive)",
+					key:         "A",
+					readOpts:    []ReadOpt{AsOfValidTime(t1)},
+					expectValue: "Old",
 				},
 				{
-					desc:             "found - as of tx time T in range (inclusive)",
-					id:               "A",
-					readOpts:         []ReadOpt{AsOfTransactionTime(t1)},
-					expectAttributes: put1Attrs,
+					desc:        "found - as of tx time T in range (inclusive)",
+					key:         "A",
+					readOpts:    []ReadOpt{AsOfTransactionTime(t1)},
+					expectValue: "Old",
 				},
 			},
 		},
@@ -351,26 +351,26 @@ func TestGet(t *testing.T) {
 			fixtures: aDocsSingleSetWithEnd,
 			testCases: []testCase{
 				{
-					desc:             "found - as of valid and tx time T in range",
-					id:               "A",
-					readOpts:         []ReadOpt{AsOfValidTime(t2), AsOfTransactionTime(t2)},
-					expectAttributes: put1Attrs,
+					desc:        "found - as of valid and tx time T in range",
+					key:         "A",
+					readOpts:    []ReadOpt{AsOfValidTime(t2), AsOfTransactionTime(t2)},
+					expectValue: "Old",
 				},
 				// valid time end range
 				{
 					desc:              "not found - default as of times",
-					id:                "A",
+					key:               "A",
 					expectErrNotFound: true,
 				},
 				{
 					desc:              "not found - as of valid time T after valid time end",
-					id:                "A",
+					key:               "A",
 					readOpts:          []ReadOpt{AsOfValidTime(t4)},
 					expectErrNotFound: true,
 				},
 				{
 					desc:              "not found - as of valid time T equal to valid time end (exclusive)",
-					id:                "A",
+					key:               "A",
 					readOpts:          []ReadOpt{AsOfValidTime(t3)},
 					expectErrNotFound: true,
 				},
@@ -380,27 +380,27 @@ func TestGet(t *testing.T) {
 			fixtures: aDocsUpdated,
 			testCases: []testCase{
 				{
-					desc:             "found - default as of times",
-					id:               "A",
-					expectAttributes: put2Attrs,
+					desc:        "found - default as of times",
+					key:         "A",
+					expectValue: "New",
 				},
 				{
-					desc:             "as of tx time now, as of valid time before update",
-					id:               "A",
-					readOpts:         []ReadOpt{AsOfValidTime(t1)},
-					expectAttributes: put1Attrs,
+					desc:        "as of tx time now, as of valid time before update",
+					key:         "A",
+					readOpts:    []ReadOpt{AsOfValidTime(t1)},
+					expectValue: "Old",
 				},
 				{
-					desc:             "as of tx time before update, as of valid time now",
-					id:               "A",
-					readOpts:         []ReadOpt{AsOfTransactionTime(t1)},
-					expectAttributes: put1Attrs,
+					desc:        "as of tx time before update, as of valid time now",
+					key:         "A",
+					readOpts:    []ReadOpt{AsOfTransactionTime(t1)},
+					expectValue: "Old",
 				},
 				{
-					desc:             "as of tx time before update, as of valid time before update",
-					id:               "A",
-					readOpts:         []ReadOpt{AsOfValidTime(t1), AsOfTransactionTime(t1)},
-					expectAttributes: put1Attrs,
+					desc:        "as of tx time before update, as of valid time before update",
+					key:         "A",
+					readOpts:    []ReadOpt{AsOfValidTime(t1), AsOfTransactionTime(t1)},
+					expectValue: "Old",
 				},
 			},
 		},
@@ -409,26 +409,26 @@ func TestGet(t *testing.T) {
 			testCases: []testCase{
 				{
 					desc:              "not found - default as of times",
-					id:                "A",
+					key:               "A",
 					expectErrNotFound: true,
 				},
 				{
-					desc:             "as of tx time now, as of valid time before update",
-					id:               "A",
-					readOpts:         []ReadOpt{AsOfValidTime(t1)},
-					expectAttributes: put1Attrs,
+					desc:        "as of tx time now, as of valid time before update",
+					key:         "A",
+					readOpts:    []ReadOpt{AsOfValidTime(t1)},
+					expectValue: "Old",
 				},
 				{
-					desc:             "as of tx time before update, as of valid time now",
-					id:               "A",
-					readOpts:         []ReadOpt{AsOfTransactionTime(t1)},
-					expectAttributes: put1Attrs,
+					desc:        "as of tx time before update, as of valid time now",
+					key:         "A",
+					readOpts:    []ReadOpt{AsOfTransactionTime(t1)},
+					expectValue: "Old",
 				},
 				{
-					desc:             "as of tx time before update, as of valid time before update",
-					id:               "A",
-					readOpts:         []ReadOpt{AsOfValidTime(t1), AsOfTransactionTime(t1)},
-					expectAttributes: put1Attrs,
+					desc:        "as of tx time before update, as of valid time before update",
+					key:         "A",
+					readOpts:    []ReadOpt{AsOfValidTime(t1), AsOfTransactionTime(t1)},
+					expectValue: "Old",
 				},
 			},
 		},
@@ -440,7 +440,7 @@ func TestGet(t *testing.T) {
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				db, err := memory.NewDB(s.fixtures.documents()...)
 				require.Nil(t, err)
-				ret, err := db.Get(tC.id, tC.readOpts...)
+				ret, err := db.Get(tC.key, tC.readOpts...)
 				if tC.expectErrNotFound {
 					require.ErrorIs(t, err, ErrNotFound)
 					return
@@ -450,7 +450,7 @@ func TestGet(t *testing.T) {
 					return
 				}
 				require.Nil(t, err)
-				assert.Equal(t, tC.expectAttributes, ret.Attributes)
+				assert.Equal(t, tC.expectValue, ret.Value)
 			})
 		}
 	}
@@ -469,9 +469,7 @@ func TestList(t *testing.T) {
 		TxTimeEnd:      nil,
 		ValidTimeStart: t1,
 		ValidTimeEnd:   nil,
-		Attributes: Attributes{
-			"status": "ACTIVE",
-		},
+		Value:          "Old",
 	}
 	aFixtures := fixtures{
 		name: "A document",
@@ -487,9 +485,7 @@ func TestList(t *testing.T) {
 		TxTimeEnd:      &t3,
 		ValidTimeStart: t1,
 		ValidTimeEnd:   nil,
-		Attributes: Attributes{
-			"status": "ACTIVE",
-		},
+		Value:          "Old",
 	}
 	bDocUpdate1 := &Document{
 		Key:            "B",
@@ -497,9 +493,7 @@ func TestList(t *testing.T) {
 		TxTimeEnd:      nil,
 		ValidTimeStart: t1,
 		ValidTimeEnd:   &t3,
-		Attributes: Attributes{
-			"status": "ACTIVE",
-		},
+		Value:          "Old",
 	}
 	bDocUpdate2 := &Document{
 		Key:            "B",
@@ -507,9 +501,7 @@ func TestList(t *testing.T) {
 		TxTimeEnd:      nil,
 		ValidTimeStart: t3,
 		ValidTimeEnd:   nil,
-		Attributes: Attributes{
-			"status": "CANCELLED",
-		},
+		Value:          "New",
 	}
 	bFixtures := fixtures{
 		name: "A, B documents",
@@ -621,12 +613,12 @@ func TestSet(t *testing.T) {
 	}
 
 	type testCase struct {
-		desc       string
-		now        *time.Time // manually control transaction time clock
-		id         string
-		attributes Attributes
-		writeOpts  []WriteOpt
-		expectErr  bool
+		desc      string
+		now       *time.Time // manually control transaction time clock
+		key       string
+		value     Value
+		writeOpts []WriteOpt
+		expectErr bool
 		// verify writes by checking result of find as of configured valid time and tx time
 		findChecks []findCheck
 	}
@@ -642,10 +634,10 @@ func TestSet(t *testing.T) {
 			},
 			testCases: []testCase{
 				{
-					desc:       "basic put",
-					now:        &t1,
-					id:         "A",
-					attributes: Attributes{"enabled": false},
+					desc:  "basic put",
+					now:   &t1,
+					key:   "A",
+					value: "Old",
 					findChecks: []findCheck{
 						{
 							expectDocument: &Document{
@@ -654,19 +646,17 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 					},
 				},
 				{
-					desc:       "basic put with valid time",
-					now:        &t1,
-					id:         "A",
-					attributes: Attributes{"enabled": false},
-					writeOpts:  []WriteOpt{WithValidTime(t0)},
+					desc:      "basic put with valid time",
+					now:       &t1,
+					key:       "A",
+					value:     "Old",
+					writeOpts: []WriteOpt{WithValidTime(t0)},
 					findChecks: []findCheck{
 						{
 							expectDocument: &Document{
@@ -675,19 +665,17 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t0,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 					},
 				},
 				{
-					desc:       "basic put with end valid time",
-					now:        &t1,
-					id:         "A",
-					attributes: Attributes{"enabled": false},
-					writeOpts:  []WriteOpt{WithEndValidTime(t2)},
+					desc:      "basic put with end valid time",
+					now:       &t1,
+					key:       "A",
+					value:     "Old",
+					writeOpts: []WriteOpt{WithEndValidTime(t2)},
 					findChecks: []findCheck{
 						{
 							expectDocument: &Document{
@@ -696,19 +684,17 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t2,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 					},
 				},
 				{
-					desc:       "basic put with valid time and end valid time",
-					now:        &t1,
-					id:         "A",
-					attributes: Attributes{"enabled": false},
-					writeOpts:  []WriteOpt{WithValidTime(t0), WithEndValidTime(t3)},
+					desc:      "basic put with valid time and end valid time",
+					now:       &t1,
+					key:       "A",
+					value:     "Old",
+					writeOpts: []WriteOpt{WithValidTime(t0), WithEndValidTime(t3)},
 					findChecks: []findCheck{
 						{
 							expectDocument: &Document{
@@ -717,43 +703,41 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t0,
 								ValidTimeEnd:   &t3,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 					},
 				},
 				{
-					desc:       "error if id not set",
-					now:        &t1,
-					id:         "",
-					attributes: Attributes{"enabled": false},
-					expectErr:  true,
+					desc:      "error if key not set",
+					now:       &t1,
+					key:       "",
+					value:     "Old",
+					expectErr: true,
 				},
 				{
-					desc:       "error if end valid time before valid time",
-					now:        &t1,
-					id:         "A",
-					attributes: Attributes{"enabled": false},
-					writeOpts:  []WriteOpt{WithValidTime(t3), WithEndValidTime(t0)},
-					expectErr:  true,
+					desc:      "error if end valid time before valid time",
+					now:       &t1,
+					key:       "A",
+					value:     "Old",
+					writeOpts: []WriteOpt{WithValidTime(t3), WithEndValidTime(t0)},
+					expectErr: true,
 				},
 				{
-					desc:       "error if end valid time before valid time (default valid time)",
-					now:        &t1,
-					id:         "A",
-					attributes: Attributes{"enabled": false},
-					writeOpts:  []WriteOpt{WithEndValidTime(t0)},
-					expectErr:  true,
+					desc:      "error if end valid time before valid time (default valid time)",
+					now:       &t1,
+					key:       "A",
+					value:     "Old",
+					writeOpts: []WriteOpt{WithEndValidTime(t0)},
+					expectErr: true,
 				},
 				{
-					desc:       "error if end valid time equal to valid time",
-					now:        &t1,
-					id:         "A",
-					attributes: Attributes{"enabled": false},
-					writeOpts:  []WriteOpt{WithValidTime(t0), WithEndValidTime(t0)},
-					expectErr:  true,
+					desc:      "error if end valid time equal to valid time",
+					now:       &t1,
+					key:       "A",
+					value:     "Old",
+					writeOpts: []WriteOpt{WithValidTime(t0), WithEndValidTime(t0)},
+					expectErr: true,
 				},
 			},
 		},
@@ -768,19 +752,17 @@ func TestSet(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Attributes: Attributes{
-								"enabled": false,
-							},
+							Value:          "Old",
 						},
 					}
 				},
 			},
 			testCases: []testCase{
 				{
-					desc:       "basic put",
-					now:        &t3,
-					id:         "A",
-					attributes: Attributes{"enabled": true},
+					desc:  "basic put",
+					now:   &t3,
+					key:   "A",
+					value: "New",
 					findChecks: []findCheck{
 						{
 							expectDocument: &Document{
@@ -789,9 +771,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t3,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": true,
-								},
+								Value:          "New",
 							},
 						},
 						// before update in valid time
@@ -803,9 +783,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t3,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 						// before update in transaction time
@@ -817,19 +795,17 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      &t3,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 					},
 				},
 				{
-					desc:       "put w/ valid time end. original record overhands on both sides",
-					now:        &t4,
-					writeOpts:  []WriteOpt{WithValidTime(t2), WithEndValidTime(t3)},
-					id:         "A",
-					attributes: Attributes{"enabled": true},
+					desc:      "put w/ valid time end. original record overhands on both sides",
+					now:       &t4,
+					writeOpts: []WriteOpt{WithValidTime(t2), WithEndValidTime(t3)},
+					key:       "A",
+					value:     "New",
 					findChecks: []findCheck{
 						// query as of now for valid time and transaction time. change not visible
 						{
@@ -839,9 +815,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t3,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 						// query as of now for transaction time, before update for valid time. change not visible
@@ -853,9 +827,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t2,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 						// query as of now for valid time, before update for transaction time. change not visible
@@ -867,9 +839,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 						// query as of valid time in range, transaction time after update. change visible
@@ -881,19 +851,17 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t2,
 								ValidTimeEnd:   &t3,
-								Attributes: Attributes{
-									"enabled": true,
-								},
+								Value:          "New",
 							},
 						},
 					},
 				},
 				{
-					desc:       "put w/ valid time end. no overhang",
-					now:        &t4,
-					writeOpts:  []WriteOpt{WithValidTime(t1)},
-					id:         "A",
-					attributes: Attributes{"enabled": true},
+					desc:      "put w/ valid time end. no overhang",
+					now:       &t4,
+					writeOpts: []WriteOpt{WithValidTime(t1)},
+					key:       "A",
+					value:     "New",
 					findChecks: []findCheck{
 						// query as of now for valid time and transaction time. change visible
 						{
@@ -903,9 +871,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": true,
-								},
+								Value:          "New",
 							},
 						},
 						// query as of now for valid time, before update for transaction time. change not visible
@@ -917,9 +883,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 					},
@@ -937,7 +901,7 @@ func TestSet(t *testing.T) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Attributes:     Attributes{"COUNT": 1},
+							Value:          "Old",
 						},
 						{
 							Key:            "A",
@@ -945,7 +909,7 @@ func TestSet(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t3,
-							Attributes:     Attributes{"COUNT": 1},
+							Value:          "Old",
 						},
 						{
 							Key:            "A",
@@ -953,18 +917,18 @@ func TestSet(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   nil,
-							Attributes:     Attributes{"COUNT": 99},
+							Value:          "New",
 						},
 					}
 				},
 			},
 			testCases: []testCase{
 				{
-					desc:       "put overlaps multiple versions",
-					now:        &t4,
-					id:         "A",
-					writeOpts:  []WriteOpt{WithValidTime(t2), WithEndValidTime(t4)},
-					attributes: Attributes{"COUNT": 777},
+					desc:      "put overlaps multiple versions",
+					now:       &t4,
+					key:       "A",
+					writeOpts: []WriteOpt{WithValidTime(t2), WithEndValidTime(t4)},
+					value:     "Newest",
 					findChecks: []findCheck{
 						// TT = t5, VT = t4. after update transaction, not in valid range. too high
 						{
@@ -975,9 +939,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t4,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"COUNT": 99,
-								},
+								Value:          "New",
 							},
 						},
 						// TT = t5, VT = t1. after update transaction, not in valid range. too low
@@ -989,9 +951,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t2,
-								Attributes: Attributes{
-									"COUNT": 1,
-								},
+								Value:          "Old",
 							},
 						},
 						// TT = t5, VT = t3. after update transaction, in valid range
@@ -1003,9 +963,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t2,
 								ValidTimeEnd:   &t4,
-								Attributes: Attributes{
-									"COUNT": 777,
-								},
+								Value:          "Newest",
 							},
 						},
 						// TT = t3, VT = t2 before update transaction, in the fixture original range
@@ -1017,9 +975,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t3,
-								Attributes: Attributes{
-									"COUNT": 1,
-								},
+								Value:          "Old",
 							},
 						},
 						// TT = t3, VT = t4. before update transaction, in the fixture updated range
@@ -1031,9 +987,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t3,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"COUNT": 99,
-								},
+								Value:          "New",
 							},
 						},
 						// TT = t2, VT = t2. before 1st fixture update transaction
@@ -1045,9 +999,7 @@ func TestSet(t *testing.T) {
 								TxTimeEnd:      &t3,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"COUNT": 1,
-								},
+								Value:          "Old",
 							},
 						},
 					},
@@ -1065,7 +1017,7 @@ func TestSet(t *testing.T) {
 				if tC.now != nil {
 					db.SetNow(*tC.now)
 				}
-				err = db.Set(tC.id, tC.attributes, tC.writeOpts...)
+				err = db.Set(tC.key, tC.value, tC.writeOpts...)
 				if tC.expectErr {
 					require.NotNil(t, err)
 					return
@@ -1073,7 +1025,7 @@ func TestSet(t *testing.T) {
 				require.Nil(t, err)
 
 				for _, findCheck := range tC.findChecks {
-					ret, err := db.Get(tC.id, findCheck.readOpts...)
+					ret, err := db.Get(tC.key, findCheck.readOpts...)
 					if findCheck.expectErrNotFound {
 						require.ErrorIs(t, err, ErrNotFound)
 						return
@@ -1103,7 +1055,7 @@ func TestDelete(t *testing.T) {
 	type testCase struct {
 		desc      string
 		now       *time.Time // manually control transaction time clock
-		id        string
+		key       string
 		writeOpts []WriteOpt
 		expectErr bool
 		// verify writes by checking result of find as of configured valid time and tx time
@@ -1123,7 +1075,7 @@ func TestDelete(t *testing.T) {
 				{
 					desc: "delete with no match is nop",
 					now:  &t1,
-					id:   "A",
+					key:  "A",
 					findChecks: []findCheck{
 						{
 							expectErrNotFound: true,
@@ -1143,9 +1095,7 @@ func TestDelete(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Attributes: Attributes{
-								"enabled": false,
-							},
+							Value:          "Old",
 						},
 					}
 				},
@@ -1154,28 +1104,28 @@ func TestDelete(t *testing.T) {
 				{
 					desc:      "error if end valid time before valid time",
 					now:       &t2,
-					id:        "A",
+					key:       "A",
 					writeOpts: []WriteOpt{WithValidTime(t3), WithEndValidTime(t0)},
 					expectErr: true,
 				},
 				{
 					desc:      "error if end valid time before valid time (default valid time)",
 					now:       &t2,
-					id:        "A",
+					key:       "A",
 					writeOpts: []WriteOpt{WithEndValidTime(t0)},
 					expectErr: true,
 				},
 				{
 					desc:      "error if end valid time equal to valid time",
 					now:       &t2,
-					id:        "A",
+					key:       "A",
 					writeOpts: []WriteOpt{WithValidTime(t0), WithEndValidTime(t0)},
 					expectErr: true,
 				},
 				{
 					desc: "basic delete",
 					now:  &t3,
-					id:   "A",
+					key:  "A",
 					findChecks: []findCheck{
 						{
 							expectErrNotFound: true,
@@ -1189,9 +1139,7 @@ func TestDelete(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t3,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 						// before update in transaction time
@@ -1203,9 +1151,7 @@ func TestDelete(t *testing.T) {
 								TxTimeEnd:      &t3,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 					},
@@ -1214,7 +1160,7 @@ func TestDelete(t *testing.T) {
 					desc:      "put w/ valid time end. original record overhands on both sides",
 					now:       &t4,
 					writeOpts: []WriteOpt{WithValidTime(t2), WithEndValidTime(t3)},
-					id:        "A",
+					key:       "A",
 					findChecks: []findCheck{
 						// query as of now for valid time and transaction time. change not visible
 						{
@@ -1224,9 +1170,7 @@ func TestDelete(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t3,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 						// query as of now for transaction time, before update for valid time. change not visible
@@ -1238,9 +1182,7 @@ func TestDelete(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t2,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 						// query as of now for valid time, before update for transaction time. change not visible
@@ -1252,9 +1194,7 @@ func TestDelete(t *testing.T) {
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 						// query as of valid time in range, transaction time after update. change visible
@@ -1268,7 +1208,7 @@ func TestDelete(t *testing.T) {
 					desc:      "put w/ valid time end. no overhang",
 					now:       &t4,
 					writeOpts: []WriteOpt{WithValidTime(t1)},
-					id:        "A",
+					key:       "A",
 					findChecks: []findCheck{
 						// query as of now for valid time and transaction time. change visible
 						{
@@ -1283,9 +1223,7 @@ func TestDelete(t *testing.T) {
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"enabled": false,
-								},
+								Value:          "Old",
 							},
 						},
 					},
@@ -1303,7 +1241,7 @@ func TestDelete(t *testing.T) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Attributes:     Attributes{"COUNT": 1},
+							Value:          "Old",
 						},
 						{
 							Key:            "A",
@@ -1311,7 +1249,7 @@ func TestDelete(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t3,
-							Attributes:     Attributes{"COUNT": 1},
+							Value:          "Old",
 						},
 						{
 							Key:            "A",
@@ -1319,7 +1257,7 @@ func TestDelete(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   nil,
-							Attributes:     Attributes{"COUNT": 99},
+							Value:          "New",
 						},
 					}
 				},
@@ -1328,7 +1266,7 @@ func TestDelete(t *testing.T) {
 				{
 					desc:      "put overlaps multiple versions",
 					now:       &t4,
-					id:        "A",
+					key:       "A",
 					writeOpts: []WriteOpt{WithValidTime(t2), WithEndValidTime(t4)},
 					findChecks: []findCheck{
 						// TT = t5, VT = t4. after update transaction, not in valid range. too high
@@ -1340,9 +1278,7 @@ func TestDelete(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t4,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"COUNT": 99,
-								},
+								Value:          "New",
 							},
 						},
 						// TT = t5, VT = t1. after update transaction, not in valid range. too low
@@ -1354,9 +1290,7 @@ func TestDelete(t *testing.T) {
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t2,
-								Attributes: Attributes{
-									"COUNT": 1,
-								},
+								Value:          "Old",
 							},
 						},
 						// TT = t5, VT = t3. after update transaction, in valid range
@@ -1373,9 +1307,7 @@ func TestDelete(t *testing.T) {
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t3,
-								Attributes: Attributes{
-									"COUNT": 1,
-								},
+								Value:          "Old",
 							},
 						},
 						// TT = t3, VT = t4. before update transaction, in the fixture updated range
@@ -1387,9 +1319,7 @@ func TestDelete(t *testing.T) {
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t3,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"COUNT": 99,
-								},
+								Value:          "New",
 							},
 						},
 						// TT = t2, VT = t2. before 1st fixture update transaction
@@ -1401,9 +1331,7 @@ func TestDelete(t *testing.T) {
 								TxTimeEnd:      &t3,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Attributes: Attributes{
-									"COUNT": 1,
-								},
+								Value:          "Old",
 							},
 						},
 					},
@@ -1421,7 +1349,7 @@ func TestDelete(t *testing.T) {
 				if tC.now != nil {
 					db.SetNow(*tC.now)
 				}
-				err = db.Delete(tC.id, tC.writeOpts...)
+				err = db.Delete(tC.key, tC.writeOpts...)
 				if tC.expectErr {
 					require.NotNil(t, err)
 					return
@@ -1429,7 +1357,7 @@ func TestDelete(t *testing.T) {
 				require.Nil(t, err)
 
 				for _, findCheck := range tC.findChecks {
-					ret, err := db.Get(tC.id, findCheck.readOpts...)
+					ret, err := db.Get(tC.key, findCheck.readOpts...)
 					if findCheck.expectErrNotFound {
 						require.ErrorIs(t, err, ErrNotFound)
 						return
@@ -1449,8 +1377,6 @@ func TestHistory(t *testing.T) {
 		documents func() []*Document
 	}
 
-	put1Attrs := Attributes{"score": 100}
-	put2Attrs := Attributes{"score": 200}
 	// 1 initial put
 	aDocsSingleSet := fixtures{
 		name: "single put, no end",
@@ -1462,7 +1388,7 @@ func TestHistory(t *testing.T) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 			}
 		},
@@ -1478,7 +1404,7 @@ func TestHistory(t *testing.T) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 			}
 		},
@@ -1495,7 +1421,7 @@ func TestHistory(t *testing.T) {
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 				{
 					Key:            "A",
@@ -1503,7 +1429,7 @@ func TestHistory(t *testing.T) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 				{
 					Key:            "A",
@@ -1511,7 +1437,7 @@ func TestHistory(t *testing.T) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t3,
 					ValidTimeEnd:   nil,
-					Attributes:     put2Attrs,
+					Value:          "New",
 				},
 			}
 		},
@@ -1526,7 +1452,7 @@ func TestHistory(t *testing.T) {
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 				{
 					Key:            "A",
@@ -1534,7 +1460,7 @@ func TestHistory(t *testing.T) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Attributes:     put1Attrs,
+					Value:          "Old",
 				},
 			}
 		},
@@ -1542,7 +1468,7 @@ func TestHistory(t *testing.T) {
 
 	type testCase struct {
 		desc              string
-		id                string
+		key               string
 		expectErrNotFound bool
 		expectErr         bool // this is exclusive of ErrNotFound. this is for unexepcted errors
 		expectDocuments   []*Document
@@ -1560,7 +1486,7 @@ func TestHistory(t *testing.T) {
 			testCases: []testCase{
 				{
 					desc:              "not found",
-					id:                "A",
+					key:               "A",
 					expectErrNotFound: true,
 				},
 			},
@@ -1570,7 +1496,7 @@ func TestHistory(t *testing.T) {
 			testCases: []testCase{
 				{
 					desc: "basic - return 1 version",
-					id:   "A",
+					key:  "A",
 					expectDocuments: []*Document{
 						{
 							Key:            "A",
@@ -1578,7 +1504,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Attributes:     put1Attrs,
+							Value:          "Old",
 						},
 					},
 				},
@@ -1589,7 +1515,7 @@ func TestHistory(t *testing.T) {
 			testCases: []testCase{
 				{
 					desc: "basic - return 1 version",
-					id:   "A",
+					key:  "A",
 					expectDocuments: []*Document{
 						{
 							Key:            "A",
@@ -1597,7 +1523,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t3,
-							Attributes:     put1Attrs,
+							Value:          "Old",
 						},
 					},
 				},
@@ -1608,7 +1534,7 @@ func TestHistory(t *testing.T) {
 			testCases: []testCase{
 				{
 					desc: "return versions by descending end transaction time, descending end valid time",
-					id:   "A",
+					key:  "A",
 					expectDocuments: []*Document{
 						{
 							Key:            "A",
@@ -1616,7 +1542,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   nil,
-							Attributes:     put2Attrs,
+							Value:          "New",
 						},
 						{
 							Key:            "A",
@@ -1624,7 +1550,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t3,
-							Attributes:     put1Attrs,
+							Value:          "Old",
 						},
 						{
 							Key:            "A",
@@ -1632,7 +1558,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Attributes:     put1Attrs,
+							Value:          "Old",
 						},
 					},
 				},
@@ -1643,7 +1569,7 @@ func TestHistory(t *testing.T) {
 			testCases: []testCase{
 				{
 					desc: "returns \"deleted\" versions",
-					id:   "A",
+					key:  "A",
 					expectDocuments: []*Document{
 						{
 							Key:            "A",
@@ -1651,7 +1577,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t3,
-							Attributes:     put1Attrs,
+							Value:          "Old",
 						},
 						{
 							Key:            "A",
@@ -1659,7 +1585,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Attributes:     put1Attrs,
+							Value:          "Old",
 						},
 					},
 				},
@@ -1676,7 +1602,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   &t4,
-							Attributes:     put1Attrs,
+							Value:          "Old",
 						},
 						{
 							Key:            "A",
@@ -1684,7 +1610,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t2,
-							Attributes:     put2Attrs,
+							Value:          "New",
 						},
 					}
 				},
@@ -1692,7 +1618,7 @@ func TestHistory(t *testing.T) {
 			testCases: []testCase{
 				{
 					desc: "return versions by descending end transaction time, descending end valid time",
-					id:   "A",
+					key:  "A",
 					expectDocuments: []*Document{
 						{
 							Key:            "A",
@@ -1700,7 +1626,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t2,
-							Attributes:     put2Attrs,
+							Value:          "New",
 						},
 						{
 							Key:            "A",
@@ -1708,7 +1634,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   &t4,
-							Attributes:     put1Attrs,
+							Value:          "Old",
 						},
 					},
 				},
@@ -1725,7 +1651,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t2,
-							Attributes:     put2Attrs,
+							Value:          "New",
 						},
 						{
 							Key:            "A",
@@ -1733,7 +1659,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   &t4,
-							Attributes:     put1Attrs,
+							Value:          "Old",
 						},
 					}
 				},
@@ -1741,7 +1667,7 @@ func TestHistory(t *testing.T) {
 			testCases: []testCase{
 				{
 					desc: "return versions by descending end transaction time, descending end valid time",
-					id:   "A",
+					key:  "A",
 					expectDocuments: []*Document{
 						{
 							Key:            "A",
@@ -1749,7 +1675,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   &t4,
-							Attributes:     put1Attrs,
+							Value:          "Old",
 						},
 						{
 							Key:            "A",
@@ -1757,7 +1683,7 @@ func TestHistory(t *testing.T) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t2,
-							Attributes:     put2Attrs,
+							Value:          "New",
 						},
 					},
 				},
@@ -1771,7 +1697,7 @@ func TestHistory(t *testing.T) {
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				db, err := memory.NewDB(s.fixtures.documents()...)
 				require.Nil(t, err)
-				ret, err := db.History(tC.id)
+				ret, err := db.History(tC.key)
 				if tC.expectErrNotFound {
 					require.ErrorIs(t, err, ErrNotFound)
 					return

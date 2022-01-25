@@ -17,14 +17,14 @@ Because every fact in a bitemporal database has these two dimensions, it enables
 ```go
 // We initialize a DB and start using it like an ordinary key-value store.
 db, err := memory.NewDB()
-err := db.Set("Bob/balance", Attributes{"dollars": 100})
+err := db.Set("Bob/balance", 100)
 doc, err := db.Get("Bob/balance")
 err := db.Delete("Alice/balance")
 // and so on...
 
 // We later learn that Bob had a temporary pending charge we missed from Dec 30 to Jan 3. (VT start = Dec 30, VT end = Jan 3)
 // Retroactively record it! This does not change his balance today nor does it destroy any history we had about that period.
-err := db.Set("Bob/balance", Attributes{"dollars": 90}, WithValidTime(dec30), WithEndValidTime(jan3))
+err := db.Set("Bob/balance", 90, WithValidTime(dec30), WithEndValidTime(jan3))
 
 // We can at any point seamlessly ask questions about the real world past AND database record past!
 // "What was Bob's balance on Jan 1 as best we knew on Jan 8?" (VT = Jan 1, TT = Jan 8)
@@ -51,17 +51,17 @@ Using a bitemporal database allows you to offload management of temporal applica
 ```go
 // DB for bitemporal data.
 //
-// Temporal control options
-// On writes: WithValidTime, WithEndValidTime
-// On reads: AsOfValidTime, AsOfTransactionTime
+// Temporal control options.
+// On writes: WithValidTime, WithEndValidTime.
+// On reads: AsOfValidTime, AsOfTransactionTime.
 type DB interface {
 	// Get data by key (as of optional valid and transaction times).
 	Get(key string, opts ...ReadOpt) (*Document, error)
 	// List all data (as of optional valid and transaction times).
 	List(opts ...ReadOpt) ([]*Document, error)
-	// Set stores attributes (with optional start and end valid time).
-	Set(key string, attributes Attributes, opts ...WriteOpt) error
-	// Delete removes attributes (with optional start and end valid time).
+	// Set stores value (with optional start and end valid time).
+	Set(key string, value Value, opts ...WriteOpt) error
+	// Delete removes value (with optional start and end valid time).
 	Delete(key string, opts ...WriteOpt) error
 
 	// History returns versions by descending end transaction time, descending end valid time

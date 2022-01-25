@@ -10,13 +10,13 @@ import (
 // On writes: WithValidTime, WithEndValidTime.
 // On reads: AsOfValidTime, AsOfTransactionTime.
 type DB interface {
-	// Get document by key as of specified times.
+	// Get data by key (as of optional valid and transaction times).
 	Get(key string, opts ...ReadOpt) (*Document, error)
-	// List all documents as of specified times.
+	// List all data (as of optional valid and transaction times).
 	List(opts ...ReadOpt) ([]*Document, error)
-	// Set stores attributes with optional configured valid times.
-	Set(key string, attributes Attributes, opts ...WriteOpt) error
-	// Delete removes attributes with optional configured valid times.
+	// Set stores value (with optional start and end valid time).
+	Set(key string, value Value, opts ...WriteOpt) error
+	// Delete removes value (with optional start and end valid time).
 	Delete(key string, opts ...WriteOpt) error
 
 	// History returns versions by descending end transaction time, descending end valid time

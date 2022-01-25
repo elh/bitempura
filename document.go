@@ -14,11 +14,11 @@ type Document struct {
 	TxTimeEnd      *time.Time
 	ValidTimeStart time.Time
 	ValidTimeEnd   *time.Time
-	Attributes     Attributes
+	Value          Value
 }
 
-// Attributes is the user-controlled data tracked by the database.
-type Attributes map[string]interface{}
+// Value is the user-controlled data associated with a key (and valid and transaction time information) in the database.
+type Value interface{}
 
 // Validate a document
 func (d *Document) Validate() error {
@@ -46,9 +46,6 @@ func (d *Document) Validate() error {
 		if !d.ValidTimeStart.Before(*d.ValidTimeEnd) {
 			return errors.New("valid time start must be before end")
 		}
-	}
-	if d.Attributes == nil {
-		return errors.New("attributes cannot be null")
 	}
 	return nil
 }
