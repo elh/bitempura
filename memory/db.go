@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	bt "github.com/elh/bitempura"
@@ -32,14 +33,19 @@ func NewDB(versionedKVs ...*bt.VersionedKV) (*DB, error) {
 
 // DB is an in-memory, bitemporal key-value database.
 type DB struct {
-	now  *time.Time
 	vKVs map[string][]*bt.VersionedKV // key -> all versioned key-values with the key
+	now  *time.Time                   // if manually controlled for testing
+
+	m    sync.RWMutex // synchronize access to vKVs
+	nowM sync.RWMutex // synchronize access to now
 }
 
 // Get data by key (as of optional valid and transaction times).
 func (db *DB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) {
 	options := db.handleReadOpts(opts)
 
+	db.m.RLock()
+	defer db.m.RUnlock()
 	vs, ok := db.vKVs[key]
 	if !ok {
 		return nil, bt.ErrNotFound
@@ -52,6 +58,8 @@ func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
 	options := db.handleReadOpts(opts)
 
 	var ret []*bt.VersionedKV
+	db.m.RLock()
+	defer db.m.RUnlock()
 	for _, vs := range db.vKVs {
 		v, err := db.findVersionByTime(vs, options.ValidTime, options.TxTime)
 		if errors.Is(err, bt.ErrNotFound) {
@@ -76,6 +84,8 @@ func (db *DB) Delete(key string, opts ...bt.WriteOpt) error {
 
 // History returns versions by descending end transaction time, descending end valid time
 func (db *DB) History(key string) ([]*bt.VersionedKV, error) {
+	db.m.RLock()
+	defer db.m.RUnlock()
 	vs, ok := db.vKVs[key]
 	if !ok {
 		return nil, bt.ErrNotFound
@@ -101,6 +111,8 @@ func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.Write
 		return err
 	}
 
+	db.m.Lock()
+	defer db.m.Unlock()
 	vs, ok := db.vKVs[key]
 	if ok {
 		overlappingVs, err := db.findOverlappingValidTimeVersions(vs, options.ValidTime, options.EndValidTime, now)
@@ -283,12 +295,17 @@ func (db *DB) assertNoOverlap(candidate *bt.VersionedKV, xs []*bt.VersionedKV) e
 // for testing
 
 // SetNow overrides "now" used by the DB for transaction times. By default, DB uses time.Now(). If SetNow is used,
-// the DB will stop defaulting to time.Now() for all future uses.
+// the DB will stop defaulting to time.Now() for all future uses. This should not be used outside of testing because it
+// will corrupt the correctness of transaction times.
 func (db *DB) SetNow(t time.Time) {
+	db.nowM.Lock()
+	defer db.nowM.Unlock()
 	db.now = &t
 }
 
 func (db *DB) getNow() time.Time {
+	db.nowM.RLock()
+	defer db.nowM.RUnlock()
 	if db.now != nil {
 		return *db.now
 	}
@@ -298,6 +315,8 @@ func (db *DB) getNow() time.Time {
 // when doing a new write, ensure that "now" is monotonically increasing for all transaction times in db.
 func (db *DB) assertValidNow() error {
 	var latestInDB time.Time
+	db.m.RLock()
+	defer db.m.RUnlock()
 	for _, versions := range db.vKVs {
 		for _, v := range versions {
 			if v.TxTimeStart.After(latestInDB) {

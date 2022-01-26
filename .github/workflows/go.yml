@@ -1,4 +1,4 @@
-name: Go
+name: build
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: test
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
@@ -18,7 +19,7 @@ jobs:
     - name: Build
       run: go build -v ./...
     - name: Test
-      run: go test -v ./...
+      run: go test -run -v ./... # testing with data race detector
   golangci:
     name: lint
     runs-on: macos-latest
