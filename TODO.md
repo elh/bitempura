@@ -8,8 +8,8 @@
 - [x] Split out in-memory implementation
 - [x] History API?
     - [ ] ReadOpt's for History
-- [ ] Thread safe writes
-    - [ ] Show issue with race detector
+- [x] Thread safe writes
+    - [x] Show issue with race detector
 - [ ] Exported ReadOpt and WriteOpt handling
 - [ ] Exported DB test harness
 - [ ] Performance/memory usage benchmarking
