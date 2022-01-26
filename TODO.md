@@ -12,9 +12,12 @@
     - [x] Show issue with race detector
 - [ ] Exported ReadOpt and WriteOpt handling
 - [ ] Exported DB test harness
+- [ ] SQL backed implementation
+- [ ] bitempur-ize existing SQL table
+- [ ] SQL querying
+- [ ] Visualizations. Interactive?
 - [ ] Performance/memory usage benchmarking
     - [ ] Profiling
-- [ ] Visualizations. Interactive?
 
 Candidates
 - [ ] Write about new intuition about mutations + the 2D time graph
@@ -23,5 +26,4 @@ Candidates
     - [ ] Explore geographical map idea. 2D of data + transaction time => 3 dimensions?
 - [ ] Separate "db" and "storage" models? first pass was blending XTDB APIs with Snodgrass style records and things are getting muddled. Storage layer will inform choices for querying ability at DB layer.
     - [ ] Should data read and write APIs return tx time and valid time context at all?
-- [ ] SQL backed implementation?
 - [ ] Consider Datomic accumulate and retract event style. Immutable storage layer?

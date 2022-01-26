@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// This test has no assertions but is meant to trigger data race detector if. When struct fields were unsynchronized
-// this failed. Calling all functions is a fast way to suss out conflicts
+// This test has no assertions but is meant to trigger data race detector. When struct fields were unsynchronized
+// this failed. Calling all functions is a fast way to suss out conflicts.
 func TestRace(t *testing.T) {
 	db, err := memory.NewDB()
 	require.Nil(t, err)
