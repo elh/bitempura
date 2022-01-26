@@ -12,7 +12,7 @@ import (
 
 var _ bt.DB = (*DB)(nil)
 
-// NewDB constructs a in-memory bitemporal DB.
+// NewDB constructs a in-memory, bitemporal key-value database.
 //
 // The database may optionally be seeded with "versioned key-value" records. No two records for the same key may overlap
 // both transaction time and valid time. Transaction times (which normally default to now) may optionally be controlled
