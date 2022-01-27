@@ -18,8 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// let's get a early POC of bitemporal SQL querying
-func TestQueryPOC(t *testing.T) {
+func TestQuery(t *testing.T) {
 	file := "bitempura_test.db"
 	err := os.Remove(file)
 	var pathErr *os.PathError
@@ -29,7 +28,7 @@ func TestQueryPOC(t *testing.T) {
 	defer closeDB(sqlDB)
 	require.Nil(t, err)
 
-	// set up table manually for POC check. Query is more exciting and writes are harder
+	// set up table manually for early proof of concept check. Query is more exciting and writes are harder
 	// NOTE: Oof... "Bitempur-izing" an existing table almost 100% will need to create a side table for it
 	// becuase we will be taking the natural key and no longer making it a unique primary key
 	_, err = sqlDB.Exec(`
@@ -107,69 +106,111 @@ func TestQueryPOC(t *testing.T) {
 	db, err := NewTableDB(sqlDB, tableName, "id")
 	require.Nil(t, err)
 
-	// -----------------------------------------------------------------------------------------------------------------
-	// get all balance (implicitly as of TT=now, VT=now)
-	fmt.Println("get all balance (implicitly as of TT=now, VT=now)")
-	_ = db
-	s := squirrel.Select("*").From("balances").OrderBy("id ASC")
-	rows, err := db.Select(s)
-	require.Nil(t, err)
-	defer rows.Close()
+	testCases := []struct {
+		desc    string
+		s       squirrel.SelectBuilder
+		readOps []bt.ReadOpt
+		expect  []map[string]interface{}
+	}{
+		{
+			desc: "get all balance (implicitly as of TT=now, VT=now)",
+			s:    squirrel.Select("*").From("balances").OrderBy("id ASC"),
+			expect: []map[string]interface{}{
+				{
+					"__bt_id":               "NOT COMPARED", // consider hiding this. all version information?
+					"__bt_tx_time_end":      nil,
+					"__bt_tx_time_start":    t3,
+					"__bt_valid_time_end":   nil,
+					"__bt_valid_time_start": t3,
+					"balance":               200.0,
+					"id":                    "alice/balance",
+					"is_active":             true,
+					"type":                  "checking",
+				},
+				{
+					"__bt_id":               "NOT COMPARED",
+					"__bt_tx_time_end":      nil,
+					"__bt_tx_time_start":    t2,
+					"__bt_valid_time_end":   nil,
+					"__bt_valid_time_start": t1,
+					"balance":               300.0,
+					"id":                    "bob/balance",
+					"is_active":             true,
+					"type":                  "savings",
+				},
+				{
+					"__bt_id":               "NOT COMPARED",
+					"__bt_tx_time_end":      nil,
+					"__bt_tx_time_start":    t3,
+					"__bt_valid_time_end":   nil,
+					"__bt_valid_time_start": t3,
+					"balance":               100.0,
+					"id":                    "carol/balance",
+					"is_active":             true,
+					"type":                  "checking",
+				},
+			},
+		},
+		{
+			desc: "get ids with balance > 100 at VT=t2",
+			s: squirrel.Select("id", "balance").
+				From("balances").
+				Where(squirrel.GtOrEq{"balance": 100}).
+				OrderBy("id ASC"),
+			readOps: []bt.ReadOpt{bt.AsOfValidTime(t2)},
+			expect: []map[string]interface{}{
+				{
+					"balance": 100.0,
+					"id":      "alice/balance",
+				},
+				{
+					"balance": 300.0,
+					"id":      "bob/balance",
+				},
+			},
+		},
+		{
+			desc: "sum of all balances as projected for t3 as known by system at t2 grouped by balance type. VT=t3, TT=t2",
+			s: squirrel.Select("type", "SUM(balance)").
+				From("balances").
+				GroupBy("type").
+				OrderBy("SUM(balance) DESC"),
+			readOps: []bt.ReadOpt{bt.AsOfValidTime(t3), bt.AsOfTransactionTime(t2)},
+			expect: []map[string]interface{}{
+				{
+					"SUM(balance)": 300.0,
+					"type":         "savings",
+				},
+				{
+					"SUM(balance)": 200.0,
+					"type":         "checking",
+				},
+			},
+		},
+	}
+	for _, tC := range testCases {
+		tC := tC
+		t.Run(tC.desc, func(t *testing.T) {
+			rows, err := db.Select(tC.s, tC.readOps...)
+			require.Nil(t, err)
+			defer rows.Close()
 
-	out, err := scanToMaps(rows)
-	require.Nil(t, err)
-	fmt.Println(toJSON(out))
+			out, err := scanToMaps(rows)
+			require.Nil(t, err)
+			fmt.Println(toJSON(out))
 
-	require.Len(t, out, 3)
-	assert.Equal(t, "alice/balance", out[0]["id"])
-	assert.Equal(t, 200.0, out[0]["balance"])
-	assert.Equal(t, "bob/balance", out[1]["id"])
-	assert.Equal(t, 300.0, out[1]["balance"])
-	assert.Equal(t, "carol/balance", out[2]["id"])
-	assert.Equal(t, 100.0, out[2]["balance"])
+			// can't control
+			// TODO: decide if i want the base APIs to return versioning information at all
+			stripBTID := func(ms []map[string]interface{}) []map[string]interface{} {
+				for _, m := range ms {
+					delete(m, "__bt_id")
+				}
+				return ms
+			}
 
-	// -----------------------------------------------------------------------------------------------------------------
-	// get ids of all checking accounts with balance >= 100 at VT=t2
-	fmt.Println("get ids with balance > 100 at VT=t2")
-	_ = db
-	s = squirrel.Select("id", "balance").
-		From("balances").
-		Where(squirrel.GtOrEq{"balance": 100}).
-		OrderBy("id ASC")
-	rows, err = db.Select(s, bt.AsOfValidTime(t2))
-	require.Nil(t, err)
-	defer rows.Close()
-
-	out, err = scanToMaps(rows)
-	require.Nil(t, err)
-	fmt.Println(toJSON(out))
-
-	require.Len(t, out, 2)
-	assert.Equal(t, "alice/balance", out[0]["id"])
-	assert.Equal(t, 100.0, out[0]["balance"])
-	assert.Equal(t, "bob/balance", out[1]["id"])
-	assert.Equal(t, 300.0, out[1]["balance"])
-
-	// -----------------------------------------------------------------------------------------------------------------
-	// sum of all balances as projected for t3 as known by system at t2 grouped by balance type. VT=t3, TT=t2
-	fmt.Println("sum of all balances as projected for t3 as known by system at t2 grouped by balance type. VT=t3, TT=t2")
-	s = squirrel.Select("type", "SUM(balance)").
-		From("balances").
-		GroupBy("type").
-		OrderBy("SUM(balance) DESC")
-	rows, err = db.Select(s, bt.AsOfValidTime(t3), bt.AsOfTransactionTime(t2))
-	require.Nil(t, err)
-	defer rows.Close()
-
-	out, err = scanToMaps(rows)
-	require.Nil(t, err)
-	fmt.Println(toJSON(out))
-
-	require.Len(t, out, 2)
-	assert.Equal(t, "savings", out[0]["type"])
-	assert.Equal(t, 300.0, out[0]["SUM(balance)"])
-	assert.Equal(t, "checking", out[1]["type"])
-	assert.Equal(t, 200.0, out[1]["SUM(balance)"])
+			assert.Equal(t, stripBTID(tC.expect), stripBTID(out))
+		})
+	}
 }
 
 // scanToMap generically scans SQL rows into a slice of maps with columns as map keys
