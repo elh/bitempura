@@ -3,7 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/elh/bitempura.svg)](https://pkg.go.dev/github.com/elh/bitempura)
 [![Build Status](https://github.com/elh/bitempura/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/elh/bitempura/actions/workflows/go.yml?query=branch%3Amain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/elh/bitempura)](https://goreportcard.com/report/github.com/elh/bitempura)
-[![Go Non-Test Lines Of Code](https://tokei.rs/b1/github/elh/bitempura?category=code)](https://github.com/elh/bitempura)
+[![Go Non-Test Lines Of Code](https://tokei.rs/b1/github/elh/bitempura?category=code)](https://github.com/elh/bitempura/blob/main/.tokeignore)
 
 **Bitempura.DB is a simple, [in-memory](https://github.com/elh/bitempura/blob/main/memory/db.go), [bitemporal](https://en.wikipedia.org/wiki/Bitemporal_Modeling) key-value database.**
 
