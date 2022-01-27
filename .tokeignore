@@ -1,0 +1,7 @@
+*_test.go
+*.md
+*.mod
+*.sum
+*.yaml
+*.yml
+.gitignore
