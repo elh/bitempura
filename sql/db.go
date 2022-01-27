@@ -39,7 +39,7 @@ func (db *TableDB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) 
 	// SELECT *
 	// FROM <table>
 	// WHERE
-	// 		<the pk> = <key> AND
+	// 		<base table pk> = <key> AND
 	//		$tx_time_start <= <as_of_tx_time> AND
 	//		($tx_time_end IS NULL OR $tx_time_end > <as_of_tx_time>) AND
 	//		$valid_time_start <= <as_of_valid_time> AND
@@ -53,7 +53,7 @@ func (db *TableDB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
 	// SELECT *
 	// FROM <table>
 	// WHERE
-	// 		<the pk> = <key> AND
+	// 		<base table pk> = <key> AND
 	//		$tx_time_start <= <as_of_tx_time> AND
 	//		($tx_time_end IS NULL OR $tx_time_end > <as_of_tx_time>) AND
 	//		$valid_time_start <= <as_of_valid_time> AND
@@ -84,7 +84,7 @@ func (db *TableDB) History(key string) ([]*bt.VersionedKV, error) {
 	// SELECT *
 	// FROM <table>
 	// WHERE
-	// 		<the pk> = <key>
+	// 		<base table pk> = <key>
 	return nil, errors.New("unimplemented")
 }
 
