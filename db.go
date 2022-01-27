@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// DB for bitemporal data.
+// DB is a key-value database for bitemporal data.
 //
 // Temporal control options.
 // ReadOpt's: AsOfValidTime, AsOfTransactionTime.
