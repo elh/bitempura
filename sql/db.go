@@ -12,6 +12,7 @@ import (
 var _ DB = (*TableDB)(nil)
 
 // DB is a SQL-backed, SQL-queryable, bitemporal database.
+// WARNING: WIP. this implementation is experimental.
 type DB interface {
 	bt.DB
 	// Select executes a SQL query (as of optional valid and transaction times).
@@ -19,6 +20,7 @@ type DB interface {
 }
 
 // NewTableDB constructs a SQL-backed, SQL-queryable, bitemporal database connected to a specific underlying SQL table.
+// WARNING: WIP. this implementation is experimental.
 func NewTableDB(eq ExecerQueryer, table string, pkColumnName string) (DB, error) {
 	// TODO: support composite PK through a pkFn(key string) Key struct
 	return &TableDB{
@@ -36,6 +38,7 @@ type TableDB struct {
 }
 
 // Get data by key (as of optional valid and transaction times).
+// WARNING: unimplemented
 func (db *TableDB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) {
 	// SELECT *
 	// FROM <table>
@@ -50,6 +53,7 @@ func (db *TableDB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) 
 }
 
 // List all data (as of optional valid and transaction times).
+// WARNING: unimplemented
 func (db *TableDB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
 	// SELECT *
 	// FROM <table>
@@ -63,6 +67,7 @@ func (db *TableDB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
 }
 
 // Set stores value (with optional start and end valid time).
+// WARNING: unimplemented
 func (db *TableDB) Set(key string, value bt.Value, opts ...bt.WriteOpt) error {
 	// INSERT
 	// INTO <table>
@@ -75,12 +80,14 @@ func (db *TableDB) Set(key string, value bt.Value, opts ...bt.WriteOpt) error {
 }
 
 // Delete removes value (with optional start and end valid time).
+// WARNING: unimplemented
 func (db *TableDB) Delete(key string, opts ...bt.WriteOpt) error {
 	// select out the conflicting records based on the write opt times. update them and add new ones as needed
 	return errors.New("unimplemented")
 }
 
 // History returns versions by descending end transaction time, descending end valid time
+// WARNING: unimplemented
 func (db *TableDB) History(key string) ([]*bt.VersionedKV, error) {
 	// SELECT *
 	// FROM <table>
