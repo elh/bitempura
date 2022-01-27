@@ -9,9 +9,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Masterminds/squirrel"
+	bt "github.com/elh/bitempura"
 	. "github.com/elh/bitempura/sql"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,7 +48,7 @@ func TestQueryPOC(t *testing.T) {
 	`)
 	require.Nil(t, err)
 
-	insert := func(id, balanceType string, balance int, isActive bool, txTimeStart time.Time, txEndTime *time.Time,
+	insert := func(id, balanceType string, balance float64, isActive bool, txTimeStart time.Time, txEndTime *time.Time,
 		validTimeStart time.Time, validEndTime *time.Time) {
 		_, err = sqlDB.Exec(`
 			INSERT INTO balances
@@ -93,7 +96,7 @@ func TestQueryPOC(t *testing.T) {
 	insert("alice/balance", "checking", 100, true, t3, nil, t1, &t3) // at t3, updated account to 200
 	insert("alice/balance", "checking", 200, true, t3, nil, t3, nil) //
 	insert("bob/balance", "savings", 100, true, t1, &t2, t1, nil)    // bob: savings 100 active
-	insert("bob/balance", "savings", 200, true, t2, nil, t1, nil)    // at t2, realize it was 200 the entire time
+	insert("bob/balance", "savings", 300, true, t2, nil, t1, nil)    // at t2, realize it was 200 the entire time
 	insert("carol/balance", "checking", 0, false, t1, &t2, t1, nil)  // carol: checking 0 inactive
 	insert("carol/balance", "checking", 0, false, t2, &t3, t1, &t2)  // at t2, add 100, reactivate account
 	insert("carol/balance", "checking", 100, true, t2, &t3, t2, nil) //
@@ -104,47 +107,108 @@ func TestQueryPOC(t *testing.T) {
 	db, err := NewTableDB(sqlDB, tableName, "id")
 	require.Nil(t, err)
 
+	// -----------------------------------------------------------------------------------------------------------------
+	// get all balance (implicitly as of TT=now, VT=now)
+	fmt.Println("get all balance (implicitly as of TT=now, VT=now)")
 	_ = db
-	// s := squirrel.Select("*").From("balances")
-	// rows, err := db.Select(s)
-
-	rows, err := sqlDB.Query("SELECT * FROM balances")
+	s := squirrel.Select("*").From("balances").OrderBy("id ASC")
+	rows, err := db.Select(s)
 	require.Nil(t, err)
 	defer rows.Close()
 
+	out, err := scanToMaps(rows)
+	require.Nil(t, err)
+	fmt.Println(toJSON(out))
+
+	require.Len(t, out, 3)
+	assert.Equal(t, "alice/balance", out[0]["id"])
+	assert.Equal(t, 200.0, out[0]["balance"])
+	assert.Equal(t, "bob/balance", out[1]["id"])
+	assert.Equal(t, 300.0, out[1]["balance"])
+	assert.Equal(t, "carol/balance", out[2]["id"])
+	assert.Equal(t, 100.0, out[2]["balance"])
+
+	// -----------------------------------------------------------------------------------------------------------------
+	// get ids of all checking accounts with balance >= 100 at VT=t2
+	fmt.Println("get ids with balance > 100 at VT=t2")
+	_ = db
+	s = squirrel.Select("id", "balance").
+		From("balances").
+		Where(squirrel.GtOrEq{"balance": 100}).
+		OrderBy("id ASC")
+	rows, err = db.Select(s, bt.AsOfValidTime(t2))
+	require.Nil(t, err)
+	defer rows.Close()
+
+	out, err = scanToMaps(rows)
+	require.Nil(t, err)
+	fmt.Println(toJSON(out))
+
+	require.Len(t, out, 2)
+	assert.Equal(t, "alice/balance", out[0]["id"])
+	assert.Equal(t, 100.0, out[0]["balance"])
+	assert.Equal(t, "bob/balance", out[1]["id"])
+	assert.Equal(t, 300.0, out[1]["balance"])
+
+	// -----------------------------------------------------------------------------------------------------------------
+	// sum of all balances as projected for t3 as known by system at t2 grouped by balance type. VT=t3, TT=t2
+	fmt.Println("sum of all balances as projected for t3 as known by system at t2 grouped by balance type. VT=t3, TT=t2")
+	s = squirrel.Select("type", "SUM(balance)").
+		From("balances").
+		GroupBy("type").
+		OrderBy("SUM(balance) DESC")
+	rows, err = db.Select(s, bt.AsOfValidTime(t3), bt.AsOfTransactionTime(t2))
+	require.Nil(t, err)
+	defer rows.Close()
+
+	out, err = scanToMaps(rows)
+	require.Nil(t, err)
+	fmt.Println(toJSON(out))
+
+	require.Len(t, out, 2)
+	assert.Equal(t, "savings", out[0]["type"])
+	assert.Equal(t, 300.0, out[0]["SUM(balance)"])
+	assert.Equal(t, "checking", out[1]["type"])
+	assert.Equal(t, 200.0, out[1]["SUM(balance)"])
+}
+
+// scanToMap generically scans SQL rows into a slice of maps with columns as map keys
+// caller should defer rows.Close() but does not need to call rows.Err()
+func scanToMaps(rows *sql.Rows) ([]map[string]interface{}, error) {
 	var out []map[string]interface{}
 
 	cols, err := rows.Columns()
-	require.Nil(t, err)
-
+	if err != nil {
+		return nil, err
+	}
 	for rows.Next() {
 		rowMap, err := scanToMap(rows, cols)
-		require.Nil(t, err)
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, rowMap)
 	}
 	if err = rows.Err(); err != nil {
 		panic(err)
 	}
-
-	fmt.Println(toJSON(out))
+	return out, nil
 }
 
-// scanToMap scans a SQL row with a dynamic list of columns into a map
 func scanToMap(row *sql.Rows, cols []string) (map[string]interface{}, error) {
-	out := map[string]interface{}{}
 	fields := make([]interface{}, len(cols))
 	fieldPtrs := make([]interface{}, len(cols))
 	for i := range fields {
 		fieldPtrs[i] = &fields[i]
-	}
-	for i, col := range cols {
-		out[col] = &fieldPtrs[i]
 	}
 
 	if err := row.Scan(fieldPtrs...); err != nil {
 		return nil, err
 	}
 
+	out := map[string]interface{}{}
+	for i, col := range cols {
+		out[col] = fields[i]
+	}
 	return out, nil
 }
 

@@ -3,6 +3,7 @@ package sql
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	bt "github.com/elh/bitempura"
@@ -40,10 +41,10 @@ func (db *TableDB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) 
 	// FROM <table>
 	// WHERE
 	// 		<base table pk> = <key> AND
-	//		$tx_time_start <= <as_of_tx_time> AND
-	//		($tx_time_end IS NULL OR $tx_time_end > <as_of_tx_time>) AND
-	//		$valid_time_start <= <as_of_valid_time> AND
-	//		($valid_time_end IS NULL OR $valid_time_end > <as_of_valid_time>)
+	//		__bt_tx_time_start <= <as_of_tx_time> AND
+	//		(__bt_tx_time_end IS NULL OR __bt_tx_time_end > <as_of_tx_time>) AND
+	//		__bt_valid_time_start <= <as_of_valid_time> AND
+	//		(__bt_valid_time_end IS NULL OR __bt_valid_time_end > <as_of_valid_time>)
 	// LIMIT 1
 	return nil, errors.New("unimplemented")
 }
@@ -54,10 +55,10 @@ func (db *TableDB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
 	// FROM <table>
 	// WHERE
 	// 		<base table pk> = <key> AND
-	//		$tx_time_start <= <as_of_tx_time> AND
-	//		($tx_time_end IS NULL OR $tx_time_end > <as_of_tx_time>) AND
-	//		$valid_time_start <= <as_of_valid_time> AND
-	//		($valid_time_end IS NULL OR $valid_time_end > <as_of_valid_time>)
+	//		__bt_tx_time_start <= <as_of_tx_time> AND
+	//		(__bt_tx_time_end IS NULL OR __bt_tx_time_end > <as_of_tx_time>) AND
+	//		__bt_valid_time_start <= <as_of_valid_time> AND
+	//		(__bt_valid_time_end IS NULL OR __bt_valid_time_end > <as_of_valid_time>)
 	return nil, errors.New("unimplemented")
 }
 
@@ -65,7 +66,7 @@ func (db *TableDB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
 func (db *TableDB) Set(key string, value bt.Value, opts ...bt.WriteOpt) error {
 	// INSERT
 	// INTO <table>
-	// (<fields...>, $tx_time_start, $tx_time_end, $valid_time_start, $valid_time_end)
+	// (<fields...>, __bt_tx_time_start, __bt_tx_time_end, __bt_valid_time_start, __bt_valid_time_end)
 	// VALUES
 	// (<values...>, <tx_time_start>, <tx_time_end>, <valid_time_start>, <valid_time_end>)
 	//
@@ -90,7 +91,28 @@ func (db *TableDB) History(key string) ([]*bt.VersionedKV, error) {
 
 // Select executes a SQL query (as of optional valid and transaction times).
 func (db *TableDB) Select(b squirrel.SelectBuilder, opts ...bt.ReadOpt) (*sql.Rows, error) {
-	return nil, errors.New("unimplemented")
+	options := db.handleReadOpts(opts)
+
+	// add tx and valid time to query
+	b = b.Where(squirrel.LtOrEq{"__bt_tx_time_start": options.TxTime})
+	b = b.Where(squirrel.Or{squirrel.Eq{"__bt_tx_time_end": nil}, squirrel.Gt{"__bt_tx_time_end": options.TxTime}})
+	b = b.Where(squirrel.LtOrEq{"__bt_valid_time_start": options.ValidTime})
+	b = b.Where(squirrel.Or{squirrel.Eq{"__bt_valid_time_end": nil}, squirrel.Gt{"__bt_valid_time_end": options.ValidTime}})
+
+	return b.RunWith(db.eq).Query()
+}
+
+func (db *TableDB) handleReadOpts(opts []bt.ReadOpt) *bt.ReadOptions {
+	now := time.Now()
+	options := &bt.ReadOptions{
+		ValidTime: now,
+		TxTime:    now,
+	}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	return options
 }
 
 // ExecerQueryer can Exec or Query. Both sql.DB and sql.Tx satisfy this interface.
