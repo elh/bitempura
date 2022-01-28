@@ -4,17 +4,23 @@
     - [x] List
     - [x] Set
     - [x] Delete
+    - [x] History API?
+        - [ ] ReadOpt's for History
 - [x] [XTDB, Robinhood example tests pass](https://github.com/elh/bitempura/blob/main/memory/db_examples_test.go)
 - [x] Split out in-memory implementation
-- [x] History API?
-    - [ ] ReadOpt's for History
 - [x] Thread safe writes
     - [x] Show issue with race detector
+- [ ] SQL backed implementation
+    - [ ] Get
+    - [ ] List
+    - [ ] Set
+    - [ ] Delete
+    - [ ] History API?
+        - [ ] ReadOpt's for History
+    - [x] SQL querying
 - [ ] Exported ReadOpt and WriteOpt handling
 - [ ] Exported DB test harness
-- [ ] SQL backed implementation
 - [ ] bitempur-ize existing SQL table
-- [ ] SQL querying
 - [ ] Visualizations. Interactive?
 - [ ] Performance/memory usage benchmarking
     - [ ] Profiling
