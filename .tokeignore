@@ -1,7 +1,7 @@
 # I am only counting non-test Go lines of code for the badge.
 # It's just something I am curious about keeping an eye on since this has been nicely simple.
 
-test/
+dbtest/
 *_test.go
 
 *.md

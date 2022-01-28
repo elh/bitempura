@@ -1,4 +1,4 @@
-package test
+package dbtest
 
 import (
 	"fmt"
@@ -445,6 +445,8 @@ func TestList(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 	}
 }
 
+// TestSet tests the Set function. dbFn must return a DB under test with the VersionedKV's stored in the database and
+// transaction times provided by the clock.
 func TestSet(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, error)) {
 	type fixtures struct {
 		name string
@@ -881,7 +883,7 @@ func TestSet(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, error
 				db, err := dbFn(s.fixtures.vKVs(), clock)
 				require.Nil(t, err)
 				if tC.now != nil {
-					clock.SetNow(*tC.now)
+					require.Nil(t, clock.SetNow(*tC.now))
 				}
 				err = db.Set(tC.key, tC.value, tC.writeOpts...)
 				if tC.expectErr {
@@ -904,6 +906,8 @@ func TestSet(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, error
 	}
 }
 
+// TestDelete tests the Delete function. dbFn must return a DB under test with the VersionedKV's stored in the database
+// and transaction times provided by the clock.
 func TestDelete(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, error)) {
 	type fixtures struct {
 		name string
@@ -1214,7 +1218,7 @@ func TestDelete(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, er
 				db, err := dbFn(s.fixtures.vKVs(), clock)
 				require.Nil(t, err)
 				if tC.now != nil {
-					clock.SetNow(*tC.now)
+					require.Nil(t, clock.SetNow(*tC.now))
 				}
 				err = db.Delete(tC.key, tC.writeOpts...)
 				if tC.expectErr {
@@ -1237,6 +1241,8 @@ func TestDelete(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, er
 	}
 }
 
+// TestHistory tests the History function. dbFn must return a DB under test with the VersionedKV's stored in the
+// database.
 func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 	type fixtures struct {
 		name string

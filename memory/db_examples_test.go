@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	. "github.com/elh/bitempura"
+	"github.com/elh/bitempura/dbtest"
 	"github.com/elh/bitempura/memory"
-	"github.com/elh/bitempura/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +21,7 @@ import (
 // > the investigator will step through this sequence to monitor a set of suspects. These events will arrive in an
 // > undetermined chronological order based on how and when each checkpoint is able to manually relay the information.
 func TestTXDBCrimeInvestigationExample(t *testing.T) {
-	clock := &test.TestClock{}
+	clock := &dbtest.TestClock{}
 	db, err := memory.NewDB(memory.WithClock(clock))
 	require.Nil(t, err)
 
@@ -31,7 +31,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// The first document shows that Person 2 was recorded entering via :SFO and the second document shows that Person 3
 	// was recorded entering :LA.
 	day0 := mustParseTime(shortForm, "2018-12-31")
-	clock.SetNow(day0)
+	require.Nil(t, clock.SetNow(day0))
 	require.Nil(t, db.Set("p2", Doc{
 		"entry-pt":       "SFO",
 		"arrival-time":   day0,
@@ -49,7 +49,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// -------------------- Day 2 --------------------
 	// A single event arrives on Day 2 showing Person 4 arriving at :NY:
 	day2 := day0.AddDate(0, 0, 2)
-	clock.SetNow(day2)
+	require.Nil(t, clock.SetNow(day2))
 	require.Nil(t, db.Set("p4", Doc{
 		"entry-pt":       "NY",
 		"arrival-time":   day2,
@@ -60,7 +60,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// Next, we learn on Day 3 that Person 4 departed from :NY, which is represented as an update to the existing
 	// document using the Day 3 valid time:
 	day3 := day0.AddDate(0, 0, 3)
-	clock.SetNow(day3)
+	require.Nil(t, clock.SetNow(day3))
 	require.Nil(t, db.Set("p4", Doc{
 		"entry-pt":       "NY",
 		"arrival-time":   day2,
@@ -71,7 +71,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// On Day 4 we begin to receive events relating to the previous days of the investigation. First we receive an event
 	// showing that Person 1 entered :NY on Day 0 which must ingest using the Day 0 valid time #inst "2018-12-31":
 	day4 := day0.AddDate(0, 0, 4)
-	clock.SetNow(day4)
+	require.Nil(t, clock.SetNow(day4))
 	require.Nil(t, db.Set("p1", Doc{
 		"entry-pt":       "NY",
 		"arrival-time":   day0,
@@ -102,7 +102,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// On Day 5 there is an event showing that Person 2, having arrived on Day 0 (which we already knew), departed from
 	// :SFO on Day 5.
 	day5 := day0.AddDate(0, 0, 5)
-	clock.SetNow(day5)
+	require.Nil(t, clock.SetNow(day5))
 	require.Nil(t, db.Set("p2", Doc{
 		"entry-pt":       "SFO",
 		"arrival-time":   day0,
@@ -117,7 +117,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// Day 4, which was misrecorded due to human error. The second document shows that Person 3 has only just departed
 	// on Day 7, which is how the previous error was noticed.
 	day7 := day0.AddDate(0, 0, 7)
-	clock.SetNow(day7)
+	require.Nil(t, clock.SetNow(day7))
 	require.Nil(t, db.Set("p3", Doc{
 		"entry-pt":       "LA",
 		"arrival-time":   day0,
@@ -134,7 +134,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// Two documents have been received relating to new arrivals on Day 8. Note that Person 3 has arrived back in the
 	// country again.
 	day8 := day0.AddDate(0, 0, 8)
-	clock.SetNow(day8)
+	require.Nil(t, clock.SetNow(day8))
 	require.Nil(t, db.Set("p3", Doc{
 		"entry-pt":       "SFO",
 		"arrival-time":   day8,
@@ -149,7 +149,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// -------------------- Day 9 --------------------
 	// On Day 9 we learn that Person 3 also departed on Day 8.
 	day9 := day0.AddDate(0, 0, 9)
-	clock.SetNow(day9)
+	require.Nil(t, clock.SetNow(day9))
 	require.Nil(t, db.Set("p3", Doc{
 		"entry-pt":       "SFO",
 		"arrival-time":   day8,
@@ -159,7 +159,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// -------------------- Day 10 --------------------
 	// A single document arrives showing that Person 5 entered at :LA earlier that day.
 	day10 := day0.AddDate(0, 0, 10)
-	clock.SetNow(day10)
+	require.Nil(t, clock.SetNow(day10))
 	require.Nil(t, db.Set("p5", Doc{
 		"entry-pt":       "LA",
 		"arrival-time":   day10,
@@ -169,7 +169,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// -------------------- Day 11 --------------------
 	// Similarly to the previous day, a single document arrives showing that Person 7 entered at :NY earlier that day.
 	day11 := day0.AddDate(0, 0, 11)
-	clock.SetNow(day11)
+	require.Nil(t, clock.SetNow(day11))
 	require.Nil(t, db.Set("p7", Doc{
 		"entry-pt":       "NY",
 		"arrival-time":   day11,
@@ -179,7 +179,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	// -------------------- Day 12 --------------------
 	// Finally, on Day 12 we learn that Person 6 entered at :NY that same day.
 	day12 := day0.AddDate(0, 0, 12)
-	clock.SetNow(day11)
+	require.Nil(t, clock.SetNow(day11))
 	require.Nil(t, db.Set("p6", Doc{
 		"entry-pt":       "NY",
 		"arrival-time":   day12,
@@ -305,7 +305,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 // see https://robinhood.engineering/tracking-temporal-data-at-robinhood-b62291644a31
 // > At Robinhood, accounting is a central part of our business...
 func TestRobinhoodExample(t *testing.T) {
-	clock := &test.TestClock{}
+	clock := &dbtest.TestClock{}
 	db, err := memory.NewDB(memory.WithClock(clock))
 	require.Nil(t, err)
 
@@ -313,14 +313,14 @@ func TestRobinhoodExample(t *testing.T) {
 
 	// Say you deposit $100 in your account on 3/14.
 	mar14 := mustParseTime(shortForm, "2021-03-14")
-	clock.SetNow(mar14)
+	require.Nil(t, clock.SetNow(mar14))
 	require.Nil(t, db.Set("user-1", Balance{
 		"cash-balance": 100,
 		"description":  "Deposit", // description of last event??
 	}))
 	// On 3/20, you purchase 1 share of ABC stock at $25.
 	mar20 := mustParseTime(shortForm, "2021-03-20")
-	clock.SetNow(mar20)
+	require.Nil(t, clock.SetNow(mar20))
 	require.Nil(t, db.Set("user-1", Balance{
 		"cash-balance": 75,
 		"description":  "Stock Purchase",
@@ -328,7 +328,7 @@ func TestRobinhoodExample(t *testing.T) {
 	// On 3/21, Robinhood received a price improvement, indicating the execution for your 1 share of ABC was
 	// actually $10.
 	mar21 := mustParseTime(shortForm, "2021-03-21")
-	clock.SetNow(mar21)
+	require.Nil(t, clock.SetNow(mar21))
 	require.Nil(t, db.Set("user-1", Balance{
 		"cash-balance": 90,
 		"description":  "Price Improvement",

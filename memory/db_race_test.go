@@ -4,15 +4,15 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/elh/bitempura/dbtest"
 	"github.com/elh/bitempura/memory"
-	"github.com/elh/bitempura/test"
 	"github.com/stretchr/testify/require"
 )
 
 // This test has no assertions but is meant to trigger data race detector. When struct fields were unsynchronized
 // this failed. Calling all functions is a fast way to suss out conflicts.
 func TestRace(t *testing.T) {
-	clock := &test.TestClock{}
+	clock := &dbtest.TestClock{}
 	db, err := memory.NewDB(memory.WithClock(clock))
 	require.Nil(t, err)
 
@@ -30,7 +30,7 @@ func TestRace(t *testing.T) {
 				_ = db.Delete("a")
 				_, _ = db.List()
 				_, _ = db.History("a")
-				clock.SetNow(t0) // check TestClock too
+				_ = clock.SetNow(t0) // check TestClock too
 			}
 		}(i)
 	}

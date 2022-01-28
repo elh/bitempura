@@ -7,8 +7,8 @@ import (
 	"time"
 
 	. "github.com/elh/bitempura"
+	"github.com/elh/bitempura/dbtest"
 	"github.com/elh/bitempura/memory"
-	bttest "github.com/elh/bitempura/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +21,6 @@ var (
 	t2 = mustParseTime(shortForm, "2022-01-02")
 	t3 = mustParseTime(shortForm, "2022-01-03")
 	t4 = mustParseTime(shortForm, "2022-01-04")
-	t5 = mustParseTime(shortForm, "2022-01-05")
 )
 
 func mustParseTime(layout, value string) time.Time {
@@ -179,31 +178,31 @@ func TestConstructor(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	bttest.TestGet(t, func(kvs []*VersionedKV) (DB, error) {
+	dbtest.TestGet(t, func(kvs []*VersionedKV) (DB, error) {
 		return memory.NewDB(memory.WithVersionedKVs(kvs))
 	})
 }
 
 func TestList(t *testing.T) {
-	bttest.TestList(t, func(kvs []*VersionedKV) (DB, error) {
+	dbtest.TestList(t, func(kvs []*VersionedKV) (DB, error) {
 		return memory.NewDB(memory.WithVersionedKVs(kvs))
 	})
 }
 
 func TestSet(t *testing.T) {
-	bttest.TestSet(t, func(kvs []*VersionedKV, clock Clock) (DB, error) {
+	dbtest.TestSet(t, func(kvs []*VersionedKV, clock Clock) (DB, error) {
 		return memory.NewDB(memory.WithVersionedKVs(kvs), memory.WithClock(clock))
 	})
 }
 
 func TestDelete(t *testing.T) {
-	bttest.TestDelete(t, func(kvs []*VersionedKV, clock Clock) (DB, error) {
+	dbtest.TestDelete(t, func(kvs []*VersionedKV, clock Clock) (DB, error) {
 		return memory.NewDB(memory.WithVersionedKVs(kvs), memory.WithClock(clock))
 	})
 }
 
 func TestHistory(t *testing.T) {
-	bttest.TestHistory(t, func(kvs []*VersionedKV) (DB, error) {
+	dbtest.TestHistory(t, func(kvs []*VersionedKV) (DB, error) {
 		return memory.NewDB(memory.WithVersionedKVs(kvs))
 	})
 }

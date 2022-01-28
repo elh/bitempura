@@ -38,7 +38,7 @@ func NewDB(opts ...DBOpt) (*DB, error) {
 type DB struct {
 	vKVs  map[string][]*bt.VersionedKV // key -> all versioned key-values with the key
 	m     sync.RWMutex                 // synchronize access to vKVs
-	clock bt.Clock                     // clock used to control transaction times
+	clock bt.Clock                     // clock provides transaction times
 }
 
 // dbOptions is a struct for processing WriteOpt's to be used by DB
