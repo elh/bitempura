@@ -19,7 +19,9 @@ jobs:
     - name: Build
       run: go build ./...
     - name: Test
-      run: go test -run ./...
+      run: go test ./...
+    - name: Race Detector Test - memory # SQL test not passing
+      run: go test github.com/elh/bitempura/memory -race
   golangci:
     name: lint
     runs-on: macos-latest

@@ -2,8 +2,7 @@ package bitempura
 
 import "time"
 
-// Clock is an interface for providing the current time for database to use for transaction times.
-// This is used for testing.
+// Clock is an interface for providing the current time for database to use as transaction times.
 type Clock interface {
 	Now() time.Time
 }
