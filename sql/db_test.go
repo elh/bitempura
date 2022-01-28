@@ -91,16 +91,23 @@ func TestQuery(t *testing.T) {
 	t1 := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
 	t2 := t1.AddDate(0, 0, 1)
 	t3 := t1.AddDate(0, 0, 2)
-	insert("alice/balance", "checking", 100, true, t1, &t3, t1, nil) // alice: checking 100 active
-	insert("alice/balance", "checking", 100, true, t3, nil, t1, &t3) // at t3, updated account to 200
-	insert("alice/balance", "checking", 200, true, t3, nil, t3, nil) //
-	insert("bob/balance", "savings", 100, true, t1, &t2, t1, nil)    // bob: savings 100 active
-	insert("bob/balance", "savings", 300, true, t2, nil, t1, nil)    // at t2, realize it was 200 the entire time
-	insert("carol/balance", "checking", 0, false, t1, &t2, t1, nil)  // carol: checking 0 inactive
-	insert("carol/balance", "checking", 0, false, t2, &t3, t1, &t2)  // at t2, add 100, reactivate account
-	insert("carol/balance", "checking", 100, true, t2, &t3, t2, nil) //
-	insert("carol/balance", "checking", 10, true, t3, nil, t1, &t3)  // at t3, oh no. realized it was re-actived but amount was wrong. it's 100 now
-	insert("carol/balance", "checking", 100, true, t3, nil, t3, nil) //
+	fmt.Println("alice: at t1, checking account has $100 in it and is active") // alice
+	insert("alice/balance", "checking", 100, true, t1, &t3, t1, nil)
+	fmt.Println("alice: at t3, balance updated to $200")
+	insert("alice/balance", "checking", 100, true, t3, nil, t1, &t3)
+	insert("alice/balance", "checking", 200, true, t3, nil, t3, nil)
+	fmt.Println("bob: at t1, savings account has $100 and is active") // bob
+	insert("bob/balance", "savings", 100, true, t1, &t2, t1, nil)
+	fmt.Println("bob: at t2, realize it was $200 the entire time")
+	insert("bob/balance", "savings", 300, true, t2, nil, t1, nil)
+	fmt.Println("carol: at t1, checking account has $0 and is inactive") // carol
+	insert("carol/balance", "checking", 0, false, t1, &t2, t1, nil)
+	fmt.Println("carol: at t2, add $100 and reactivate account")
+	insert("carol/balance", "checking", 0, false, t2, &t3, t1, &t2)
+	insert("carol/balance", "checking", 100, true, t2, &t3, t2, nil)
+	fmt.Println("carol: at t3, oh no! realized it was re-actived at t2 but amount was wrong; it was $10. it's 100 now though")
+	insert("carol/balance", "checking", 10, true, t3, nil, t1, &t3)
+	insert("carol/balance", "checking", 100, true, t3, nil, t3, nil)
 
 	tableName := "balances"
 	db, err := NewTableDB(sqlDB, tableName, "id")
@@ -191,6 +198,10 @@ func TestQuery(t *testing.T) {
 	for _, tC := range testCases {
 		tC := tC
 		t.Run(tC.desc, func(t *testing.T) {
+			sqlStr, _, err := tC.s.ToSql()
+			require.Nil(t, err)
+			fmt.Printf("query: %s\n", sqlStr)
+
 			rows, err := db.Select(tC.s, tC.readOps...)
 			require.Nil(t, err)
 			defer rows.Close()
