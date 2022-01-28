@@ -445,7 +445,7 @@ func TestList(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 	}
 }
 
-func TestSet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
+func TestSet(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, error)) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
@@ -877,10 +877,11 @@ func TestSet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := dbFn(s.fixtures.vKVs())
+				clock := &TestClock{}
+				db, err := dbFn(s.fixtures.vKVs(), clock)
 				require.Nil(t, err)
 				if tC.now != nil {
-					// db.SetNow(*tC.now) TODO: fix this
+					clock.SetNow(*tC.now)
 				}
 				err = db.Set(tC.key, tC.value, tC.writeOpts...)
 				if tC.expectErr {
@@ -903,7 +904,7 @@ func TestSet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 	}
 }
 
-func TestDelete(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
+func TestDelete(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, error)) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
@@ -1209,10 +1210,11 @@ func TestDelete(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := dbFn(s.fixtures.vKVs())
+				clock := &TestClock{}
+				db, err := dbFn(s.fixtures.vKVs(), clock)
 				require.Nil(t, err)
 				if tC.now != nil {
-					// db.SetNow(*tC.now) TODO: fix this
+					clock.SetNow(*tC.now)
 				}
 				err = db.Delete(tC.key, tC.writeOpts...)
 				if tC.expectErr {
