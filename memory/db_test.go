@@ -3,12 +3,12 @@ package memory_test
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 	"testing"
 	"time"
 
 	. "github.com/elh/bitempura"
 	"github.com/elh/bitempura/memory"
+	"github.com/elh/bitempura/test"
 	bttest "github.com/elh/bitempura/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -169,7 +169,7 @@ func TestConstructor(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				_, err := memory.NewDB(s.fixtures.vKVs()...)
+				_, err := memory.NewDB(memory.WithVersionedKVs(s.fixtures.vKVs()))
 				if tC.expectErr {
 					require.NotNil(t, err)
 					return
@@ -182,21 +182,14 @@ func TestConstructor(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	bttest.TestGet(t, func(kvs []*VersionedKV) (DB, error) {
-		return memory.NewDB(kvs...)
+		return memory.NewDB(memory.WithVersionedKVs(kvs))
 	})
 }
 
 func TestList(t *testing.T) {
 	bttest.TestList(t, func(kvs []*VersionedKV) (DB, error) {
-		return memory.NewDB(kvs...)
+		return memory.NewDB(memory.WithVersionedKVs(kvs))
 	})
-}
-
-func sortKVsByKey(ds []*VersionedKV) []*VersionedKV {
-	out := make([]*VersionedKV, len(ds))
-	copy(out, ds)
-	sort.Slice(out, func(i, j int) bool { return out[i].Key < out[j].Key })
-	return out
 }
 
 func TestSet(t *testing.T) {
@@ -631,10 +624,11 @@ func TestSet(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.vKVs()...)
+				clock := &test.TestClock{}
+				db, err := memory.NewDB(memory.WithVersionedKVs(s.fixtures.vKVs()), memory.WithClock(clock))
 				require.Nil(t, err)
 				if tC.now != nil {
-					db.SetNow(*tC.now)
+					clock.SetNow(*tC.now)
 				}
 				err = db.Set(tC.key, tC.value, tC.writeOpts...)
 				if tC.expectErr {
@@ -963,10 +957,11 @@ func TestDelete(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.vKVs()...)
+				clock := &test.TestClock{}
+				db, err := memory.NewDB(memory.WithVersionedKVs(s.fixtures.vKVs()), memory.WithClock(clock))
 				require.Nil(t, err)
 				if tC.now != nil {
-					db.SetNow(*tC.now)
+					clock.SetNow(*tC.now)
 				}
 				err = db.Delete(tC.key, tC.writeOpts...)
 				if tC.expectErr {
@@ -1314,7 +1309,7 @@ func TestHistory(t *testing.T) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := memory.NewDB(s.fixtures.vKVs()...)
+				db, err := memory.NewDB(memory.WithVersionedKVs(s.fixtures.vKVs()))
 				require.Nil(t, err)
 				ret, err := db.History(tC.key)
 				if tC.expectErrNotFound {

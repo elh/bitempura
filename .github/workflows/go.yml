@@ -17,9 +17,9 @@ jobs:
       with:
         go-version: 1.17
     - name: Build
-      run: go build -v ./...
+      run: go build ./...
     - name: Test
-      run: go test -run -v ./... # testing with data race detector
+      run: go test -run ./...
   golangci:
     name: lint
     runs-on: macos-latest

@@ -10,6 +10,7 @@
 - [x] Split out in-memory implementation
 - [x] Thread safe writes
     - [x] Show issue with race detector
+    - [ ] Actually run race detector in build
 - [ ] SQL backed implementation
     - [ ] Get
     - [ ] List

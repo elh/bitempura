@@ -13,13 +13,16 @@ import (
 var _ bt.DB = (*DB)(nil)
 
 // NewDB constructs a in-memory, bitemporal key-value database.
-//
-// The database may optionally be seeded with "versioned key-value" records. No two records for the same key may overlap
-// both transaction time and valid time. Transaction times (which normally default to now) may optionally be controlled
-// with SetNow.
-func NewDB(versionedKVs ...*bt.VersionedKV) (*DB, error) {
-	db := &DB{vKVs: map[string][]*bt.VersionedKV{}}
-	for _, kv := range versionedKVs {
+func NewDB(opts ...DBOpt) (*DB, error) {
+	options := &dbOptions{
+		clock: &bt.DefaultClock{},
+	}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	db := &DB{vKVs: map[string][]*bt.VersionedKV{}, clock: options.clock}
+	for _, kv := range options.versionedKVs {
 		if err := kv.Validate(); err != nil {
 			return nil, err
 		}
@@ -33,11 +36,33 @@ func NewDB(versionedKVs ...*bt.VersionedKV) (*DB, error) {
 
 // DB is an in-memory, bitemporal key-value database.
 type DB struct {
-	vKVs map[string][]*bt.VersionedKV // key -> all versioned key-values with the key
-	now  *time.Time                   // if manually controlled for testing
+	vKVs  map[string][]*bt.VersionedKV // key -> all versioned key-values with the key
+	m     sync.RWMutex                 // synchronize access to vKVs
+	clock bt.Clock                     // clock used to control transaction times
+}
 
-	m    sync.RWMutex // synchronize access to vKVs
-	nowM sync.RWMutex // synchronize access to now
+// dbOptions is a struct for processing WriteOpt's to be used by DB
+type dbOptions struct {
+	versionedKVs []*bt.VersionedKV
+	clock        bt.Clock
+}
+
+// DBOpt is an option for constructing databases
+type DBOpt func(*dbOptions)
+
+// WithVersionedKVs constructs database with seeded "versioned key-value" records. No two records for the same key may
+// overlap both transaction time and valid time.
+func WithVersionedKVs(versionedKVs []*bt.VersionedKV) DBOpt {
+	return func(os *dbOptions) {
+		os.versionedKVs = versionedKVs
+	}
+}
+
+// WithClock constructs database with a clock in order to control transaction times. This is used for testing.
+func WithClock(clock bt.Clock) DBOpt {
+	return func(os *dbOptions) {
+		os.clock = clock
+	}
 }
 
 // Get data by key (as of optional valid and transaction times).
@@ -167,12 +192,7 @@ func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.Write
 }
 
 func (db *DB) handleWriteOpts(opts []bt.WriteOpt) (options *bt.WriteOptions, now time.Time, err error) {
-	// gut check to prevent invalid tx times due to testing overrides
-	if err := db.assertValidNow(); err != nil {
-		return nil, time.Time{}, err
-	}
-
-	now = db.getNow()
+	now = db.clock.Now()
 	options = &bt.WriteOptions{
 		ValidTime:    now,
 		EndValidTime: nil,
@@ -190,7 +210,7 @@ func (db *DB) handleWriteOpts(opts []bt.WriteOpt) (options *bt.WriteOptions, now
 }
 
 func (db *DB) handleReadOpts(opts []bt.ReadOpt) *bt.ReadOptions {
-	now := db.getNow()
+	now := db.clock.Now()
 	options := &bt.ReadOptions{
 		ValidTime: now,
 		TxTime:    now,
@@ -288,48 +308,6 @@ func (db *DB) assertNoOverlap(candidate *bt.VersionedKV, xs []*bt.VersionedKV) e
 		if txTimeOverlaps && validTimeOverlaps {
 			return fmt.Errorf("versioned values for the same key overlap tx time and valid time")
 		}
-	}
-	return nil
-}
-
-// for testing
-
-// SetNow overrides "now" used by the DB for transaction times. By default, DB uses time.Now(). If SetNow is used,
-// the DB will stop defaulting to time.Now() for all future uses. This should not be used outside of testing because it
-// will corrupt the correctness of transaction times.
-func (db *DB) SetNow(t time.Time) {
-	db.nowM.Lock()
-	defer db.nowM.Unlock()
-	db.now = &t
-}
-
-func (db *DB) getNow() time.Time {
-	db.nowM.RLock()
-	defer db.nowM.RUnlock()
-	if db.now != nil {
-		return *db.now
-	}
-	return time.Now()
-}
-
-// when doing a new write, ensure that "now" is monotonically increasing for all transaction times in db.
-func (db *DB) assertValidNow() error {
-	var latestInDB time.Time
-	db.m.RLock()
-	defer db.m.RUnlock()
-	for _, versions := range db.vKVs {
-		for _, v := range versions {
-			if v.TxTimeStart.After(latestInDB) {
-				latestInDB = v.TxTimeStart
-			}
-			if v.TxTimeEnd != nil && v.TxTimeEnd.After(latestInDB) {
-				latestInDB = *v.TxTimeEnd
-			}
-		}
-	}
-	now := db.getNow()
-	if now.Before(latestInDB) {
-		return fmt.Errorf("now (%v) is before the last transaction time in db (%v)", now, latestInDB)
 	}
 	return nil
 }
