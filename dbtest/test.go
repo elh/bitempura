@@ -31,8 +31,9 @@ func mustParseTime(layout, value string) time.Time {
 	return t
 }
 
-// TestGet tests the Get function. dbFn must return a DB under test with the VersionedKV's stored in the database.
-func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
+// TestGet tests the Get function. dbFn must return a DB under test with the VersionedKV's stored in the database and
+// a function to close the DB after the test is complete.
+func TestGet(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*VersionedKV) (db DB, closeFn func(), err error)) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
@@ -50,7 +51,7 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 			}
 		},
@@ -66,7 +67,7 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 			}
 		},
@@ -83,7 +84,7 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 				{
 					Key:            "A",
@@ -91,7 +92,7 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 				{
 					Key:            "A",
@@ -99,7 +100,7 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t3,
 					ValidTimeEnd:   nil,
-					Value:          "New",
+					Value:          newValue,
 				},
 			}
 		},
@@ -114,7 +115,7 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 				{
 					Key:            "A",
@@ -122,7 +123,7 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 			}
 		},
@@ -160,7 +161,7 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 				{
 					desc:        "found - default as of times",
 					key:         "A",
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 				{
 					desc:              "not found - as of valid time T before valid time start",
@@ -178,25 +179,25 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					desc:        "found - as of valid time T in range",
 					key:         "A",
 					readOpts:    []ReadOpt{AsOfValidTime(t2)},
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 				{
 					desc:        "found - as of tx time T in range",
 					key:         "A",
 					readOpts:    []ReadOpt{AsOfTransactionTime(t2)},
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 				{
 					desc:        "found - as of valid time T in range (inclusive)",
 					key:         "A",
 					readOpts:    []ReadOpt{AsOfValidTime(t1)},
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 				{
 					desc:        "found - as of tx time T in range (inclusive)",
 					key:         "A",
 					readOpts:    []ReadOpt{AsOfTransactionTime(t1)},
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 			},
 		},
@@ -207,7 +208,7 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					desc:        "found - as of valid and tx time T in range",
 					key:         "A",
 					readOpts:    []ReadOpt{AsOfValidTime(t2), AsOfTransactionTime(t2)},
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 				// valid time end range
 				{
@@ -235,25 +236,25 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 				{
 					desc:        "found - default as of times",
 					key:         "A",
-					expectValue: "New",
+					expectValue: newValue,
 				},
 				{
 					desc:        "as of tx time now, as of valid time before update",
 					key:         "A",
 					readOpts:    []ReadOpt{AsOfValidTime(t1)},
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 				{
 					desc:        "as of tx time before update, as of valid time now",
 					key:         "A",
 					readOpts:    []ReadOpt{AsOfTransactionTime(t1)},
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 				{
 					desc:        "as of tx time before update, as of valid time before update",
 					key:         "A",
 					readOpts:    []ReadOpt{AsOfValidTime(t1), AsOfTransactionTime(t1)},
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 			},
 		},
@@ -269,19 +270,19 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					desc:        "as of tx time now, as of valid time before update",
 					key:         "A",
 					readOpts:    []ReadOpt{AsOfValidTime(t1)},
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 				{
 					desc:        "as of tx time before update, as of valid time now",
 					key:         "A",
 					readOpts:    []ReadOpt{AsOfTransactionTime(t1)},
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 				{
 					desc:        "as of tx time before update, as of valid time before update",
 					key:         "A",
 					readOpts:    []ReadOpt{AsOfValidTime(t1), AsOfTransactionTime(t1)},
-					expectValue: "Old",
+					expectValue: oldValue,
 				},
 			},
 		},
@@ -291,7 +292,8 @@ func TestGet(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := dbFn(s.fixtures.vKVs())
+				db, closeFn, err := dbFn(s.fixtures.vKVs())
+				defer closeFn()
 				require.Nil(t, err)
 				ret, err := db.Get(tC.key, tC.readOpts...)
 				if tC.expectErrNotFound {

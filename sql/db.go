@@ -49,7 +49,26 @@ func (db *TableDB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) 
 	//		__bt_valid_time_start <= <as_of_valid_time> AND
 	//		(__bt_valid_time_end IS NULL OR __bt_valid_time_end > <as_of_valid_time>)
 	// LIMIT 1
-	return nil, errors.New("unimplemented")
+
+	b := squirrel.Select("*").
+		From(db.table).
+		Where(squirrel.Eq{db.pkColumnName: key}).
+		Limit(1)
+	rows, err := db.Select(b, opts...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	kvs, err := ScanToVersionedKVs(db.pkColumnName, rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(kvs) == 0 {
+		return nil, bt.ErrNotFound
+	}
+
+	return kvs[0], nil
 }
 
 // List all data (as of optional valid and transaction times).

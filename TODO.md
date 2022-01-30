@@ -10,17 +10,18 @@
 - [x] Split out in-memory implementation
 - [x] Thread safe writes
     - [x] Show issue with race detector
-    - [ ] Actually run race detector in build
+    - [x] Actually run race detector in build
 - [ ] SQL backed implementation
-    - [ ] Get
+    - [x] Get
     - [ ] List
     - [ ] Set
     - [ ] Delete
     - [ ] History API?
         - [ ] ReadOpt's for History
     - [x] SQL querying
+    - [ ] support composite PKs, non-string PKs
+- [x] Exported DB test harness
 - [ ] Exported ReadOpt and WriteOpt handling
-- [ ] Exported DB test harness
 - [ ] bitempur-ize existing SQL table
 - [ ] Visualizations. Interactive?
 - [ ] Performance/memory usage benchmarking

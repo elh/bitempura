@@ -11,6 +11,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	bt "github.com/elh/bitempura"
+	"github.com/elh/bitempura/dbtest"
 	. "github.com/elh/bitempura/sql"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
@@ -18,14 +19,75 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestQuery(t *testing.T) {
+var (
+	t1 = time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
+	t2 = t1.AddDate(0, 0, 1)
+	t3 = t1.AddDate(0, 0, 2)
+)
+
+func TestGet(t *testing.T) {
+	oldValue := map[string]interface{}{
+		"type":      "checking",
+		"balance":   0.0,
+		"is_active": false,
+	}
+	newValue := map[string]interface{}{
+		"type":      "checking",
+		"balance":   100.0,
+		"is_active": true,
+	}
+	dbtest.TestGet(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, func(), error) {
+		sqlDB := setupTestDB(t)
+
+		for _, kv := range kvs {
+			mustInsertKV(sqlDB, "balances", "id", kv)
+		}
+
+		db, err := NewTableDB(sqlDB, "balances", "id")
+		return db, closeDBFn(sqlDB), err
+	})
+}
+
+// insertKV inserts a single versioned key-value pair directly into the database.
+func insertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) error {
+	// key and time fields
+	cols := []string{pkColumnName, "__bt_id", "__bt_tx_time_start", "__bt_tx_time_end", "__bt_valid_time_start", "__bt_valid_time_end"}
+	vals := []interface{}{kv.Key, uuid.New().String(), kv.TxTimeStart, kv.TxTimeEnd, kv.ValidTimeStart, kv.ValidTimeEnd}
+
+	// value
+	valueMap, ok := kv.Value.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("value must be of type map[string]interface{}")
+	}
+	for k, v := range valueMap {
+		cols = append(cols, k)
+		vals = append(vals, v)
+	}
+
+	_, err := squirrel.
+		Insert(tableName).
+		Columns(cols...).
+		Values(vals...).
+		RunWith(db).
+		Exec()
+	return err
+}
+
+func mustInsertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) {
+	if err := insertKV(db, tableName, pkColumnName, kv); err != nil {
+		panic(err)
+	}
+}
+
+// setupTestDB returns a SQLite database with a bitemporal table named "balances" seeded for tests. Caller must close
+// the db.
+func setupTestDB(t *testing.T) *sql.DB {
 	file := "bitempura_test.db"
 	err := os.Remove(file)
 	var pathErr *os.PathError
 	require.True(t, err == nil || errors.As(err, &pathErr), err)
 
 	sqlDB, err := sql.Open("sqlite3", file)
-	defer closeDB(sqlDB)
 	require.Nil(t, err)
 
 	// set up table manually for early proof of concept check. Query is more exciting and writes are harder
@@ -47,50 +109,29 @@ func TestQuery(t *testing.T) {
 	`)
 	require.Nil(t, err)
 
+	return sqlDB
+}
+
+func TestQuery(t *testing.T) {
+	sqlDB := setupTestDB(t)
+	defer closeDB(sqlDB)
+
 	insert := func(id, balanceType string, balance float64, isActive bool, txTimeStart time.Time, txEndTime *time.Time,
 		validTimeStart time.Time, validEndTime *time.Time) {
-		_, err = sqlDB.Exec(`
-			INSERT INTO balances
-			(
-				id,
-				type,
-				balance,
-				is_active,
-				__bt_id,
-				__bt_tx_time_start,
-				__bt_tx_time_end,
-				__bt_valid_time_start,
-				__bt_valid_time_end
-			)
-			VALUES
-			(
-				?,
-				?,
-				?,
-				?,
-				?,
-				?,
-				?,
-				?,
-				?
-			);
-		`,
-			id,
-			balanceType,
-			balance,
-			isActive,
-			uuid.New().String(),
-			txTimeStart,
-			txEndTime,
-			validTimeStart,
-			validEndTime,
-		)
-		require.Nil(t, err)
+		mustInsertKV(sqlDB, "balances", "id", &bt.VersionedKV{
+			Key: id,
+			Value: map[string]interface{}{
+				"type":      balanceType,
+				"balance":   balance,
+				"is_active": isActive,
+			},
+			TxTimeStart:    txTimeStart,
+			TxTimeEnd:      txEndTime,
+			ValidTimeStart: validTimeStart,
+			ValidTimeEnd:   validEndTime,
+		})
 	}
 
-	t1 := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
-	t2 := t1.AddDate(0, 0, 1)
-	t3 := t1.AddDate(0, 0, 2)
 	fmt.Println("alice: at t1, checking account has $100 in it and is active") // alice
 	insert("alice/balance", "checking", 100, true, t1, &t3, t1, nil)
 	fmt.Println("alice: at t3, balance updated to $200")
@@ -109,8 +150,7 @@ func TestQuery(t *testing.T) {
 	insert("carol/balance", "checking", 10, true, t3, nil, t1, &t3)
 	insert("carol/balance", "checking", 100, true, t3, nil, t3, nil)
 
-	tableName := "balances"
-	db, err := NewTableDB(sqlDB, tableName, "id")
+	db, err := NewTableDB(sqlDB, "balances", "id")
 	require.Nil(t, err)
 
 	testCases := []struct {
@@ -206,7 +246,7 @@ func TestQuery(t *testing.T) {
 			require.Nil(t, err)
 			defer rows.Close()
 
-			out, err := scanToMaps(rows)
+			out, err := ScanToMaps(rows)
 			require.Nil(t, err)
 			fmt.Println(toJSON(out))
 
@@ -224,50 +264,17 @@ func TestQuery(t *testing.T) {
 	}
 }
 
-// scanToMap generically scans SQL rows into a slice of maps with columns as map keys
-// caller should defer rows.Close() but does not need to call rows.Err()
-func scanToMaps(rows *sql.Rows) ([]map[string]interface{}, error) {
-	var out []map[string]interface{}
-
-	cols, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		rowMap, err := scanToMap(rows, cols)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, rowMap)
-	}
-	if err = rows.Err(); err != nil {
-		panic(err)
-	}
-	return out, nil
-}
-
-func scanToMap(row *sql.Rows, cols []string) (map[string]interface{}, error) {
-	fields := make([]interface{}, len(cols))
-	fieldPtrs := make([]interface{}, len(cols))
-	for i := range fields {
-		fieldPtrs[i] = &fields[i]
-	}
-
-	if err := row.Scan(fieldPtrs...); err != nil {
-		return nil, err
-	}
-
-	out := map[string]interface{}{}
-	for i, col := range cols {
-		out[col] = fields[i]
-	}
-	return out, nil
-}
-
-// do not nil point exception on defer
+// do not nil point exception on defer. explicitly ignore error for lint warnings
 func closeDB(db *sql.DB) {
 	if db != nil {
 		_ = db.Close()
+	}
+}
+
+// return a close function for clean up in tests
+func closeDBFn(db *sql.DB) func() {
+	return func() {
+		closeDB(db)
 	}
 }
 
