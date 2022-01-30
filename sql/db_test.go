@@ -23,26 +23,36 @@ var (
 	t1 = time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
 	t2 = t1.AddDate(0, 0, 1)
 	t3 = t1.AddDate(0, 0, 2)
-)
 
-func TestGet(t *testing.T) {
-	oldValue := map[string]interface{}{
+	oldValue = map[string]interface{}{
 		"type":      "checking",
 		"balance":   0.0,
 		"is_active": false,
 	}
-	newValue := map[string]interface{}{
+	newValue = map[string]interface{}{
 		"type":      "checking",
 		"balance":   100.0,
 		"is_active": true,
 	}
+)
+
+func TestGet(t *testing.T) {
 	dbtest.TestGet(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, func(), error) {
 		sqlDB := setupTestDB(t)
-
 		for _, kv := range kvs {
 			mustInsertKV(sqlDB, "balances", "id", kv)
 		}
+		db, err := NewTableDB(sqlDB, "balances", "id")
+		return db, closeDBFn(sqlDB), err
+	})
+}
 
+func TestList(t *testing.T) {
+	dbtest.TestList(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, func(), error) {
+		sqlDB := setupTestDB(t)
+		for _, kv := range kvs {
+			mustInsertKV(sqlDB, "balances", "id", kv)
+		}
 		db, err := NewTableDB(sqlDB, "balances", "id")
 		return db, closeDBFn(sqlDB), err
 	})

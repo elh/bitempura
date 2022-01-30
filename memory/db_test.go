@@ -185,8 +185,9 @@ func TestGet(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	dbtest.TestList(t, func(kvs []*VersionedKV) (DB, error) {
-		return memory.NewDB(memory.WithVersionedKVs(kvs))
+	dbtest.TestList(t, "OLD", "NEW", func(kvs []*VersionedKV) (DB, func(), error) {
+		db, err := memory.NewDB(memory.WithVersionedKVs(kvs))
+		return db, func() {}, err
 	})
 }
 

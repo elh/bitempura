@@ -8,46 +8,6 @@ import (
 	bt "github.com/elh/bitempura"
 )
 
-func getString(key string, m map[string]interface{}) (string, error) {
-	v, ok := m[key]
-	if !ok {
-		return "", fmt.Errorf("missing key %s", key)
-	}
-	s, ok := v.(string)
-	if !ok {
-		return "", fmt.Errorf("value for key %s is not of type string", key)
-	}
-	return s, nil
-}
-
-func getTime(key string, m map[string]interface{}) (time.Time, error) {
-	v, ok := m[key]
-	if !ok {
-		return time.Time{}, fmt.Errorf("missing key %s", key)
-	}
-	t, ok := v.(time.Time)
-	if !ok {
-		return time.Time{}, fmt.Errorf("value for key %s is not of type time.Time", key)
-	}
-	return t, nil
-}
-
-// due to handling by ScanToMaps, value will either be nil or of type time.Time
-func getNullTime(key string, m map[string]interface{}) (*time.Time, error) {
-	v, ok := m[key]
-	if !ok {
-		return nil, fmt.Errorf("missing key %s", key)
-	}
-	if v == nil {
-		return nil, nil
-	}
-	t, ok := v.(time.Time)
-	if !ok {
-		return nil, fmt.Errorf("value for key %s is not of type time.Time", key)
-	}
-	return &t, nil
-}
-
 // ScanToVersionedKVs generically scans SQL rows into a slice of VersionedKV's. Caller should defer rows.Close() but
 // does not need to call rows.Err()
 func ScanToVersionedKVs(pkColumnName string, rows *sql.Rows) ([]*bt.VersionedKV, error) {
@@ -137,4 +97,44 @@ func scanToMap(row *sql.Rows, cols []string) (map[string]interface{}, error) {
 		out[col] = fields[i]
 	}
 	return out, nil
+}
+
+func getString(key string, m map[string]interface{}) (string, error) {
+	v, ok := m[key]
+	if !ok {
+		return "", fmt.Errorf("missing key %s", key)
+	}
+	s, ok := v.(string)
+	if !ok {
+		return "", fmt.Errorf("value for key %s is not of type string", key)
+	}
+	return s, nil
+}
+
+func getTime(key string, m map[string]interface{}) (time.Time, error) {
+	v, ok := m[key]
+	if !ok {
+		return time.Time{}, fmt.Errorf("missing key %s", key)
+	}
+	t, ok := v.(time.Time)
+	if !ok {
+		return time.Time{}, fmt.Errorf("value for key %s is not of type time.Time", key)
+	}
+	return t, nil
+}
+
+// due to handling by ScanToMaps, value will either be nil or of type time.Time
+func getNullTime(key string, m map[string]interface{}) (*time.Time, error) {
+	v, ok := m[key]
+	if !ok {
+		return nil, fmt.Errorf("missing key %s", key)
+	}
+	if v == nil {
+		return nil, nil
+	}
+	t, ok := v.(time.Time)
+	if !ok {
+		return nil, fmt.Errorf("value for key %s is not of type time.Time", key)
+	}
+	return &t, nil
 }
