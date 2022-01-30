@@ -18,14 +18,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestQuery(t *testing.T) {
+var (
+	t1 = time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
+	t2 = t1.AddDate(0, 0, 1)
+	t3 = t1.AddDate(0, 0, 2)
+)
+
+// func TestGet(t *testing.T) {
+// 	dbtest.TestGet(t, func(kvs []*bt.VersionedKV) (bt.DB, error) {
+// 		file := "bitempura_test.db"
+// 		sqlDB, err := sql.Open("sqlite3", file)
+// 		defer closeDB(sqlDB)
+// 		require.Nil(t, err)
+
+// 		return NewTableDB(sqlDB, "balances", "id")
+// 	})
+// }
+
+// setupTestDB returns a SQLite database with a bitemporal table named "balances" seeded for tests. Caller must close
+// the db.
+func setupTestDB(t *testing.T) *sql.DB {
 	file := "bitempura_test.db"
 	err := os.Remove(file)
 	var pathErr *os.PathError
 	require.True(t, err == nil || errors.As(err, &pathErr), err)
 
 	sqlDB, err := sql.Open("sqlite3", file)
-	defer closeDB(sqlDB)
 	require.Nil(t, err)
 
 	// set up table manually for early proof of concept check. Query is more exciting and writes are harder
@@ -88,9 +106,6 @@ func TestQuery(t *testing.T) {
 		require.Nil(t, err)
 	}
 
-	t1 := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
-	t2 := t1.AddDate(0, 0, 1)
-	t3 := t1.AddDate(0, 0, 2)
 	fmt.Println("alice: at t1, checking account has $100 in it and is active") // alice
 	insert("alice/balance", "checking", 100, true, t1, &t3, t1, nil)
 	fmt.Println("alice: at t3, balance updated to $200")
@@ -109,8 +124,14 @@ func TestQuery(t *testing.T) {
 	insert("carol/balance", "checking", 10, true, t3, nil, t1, &t3)
 	insert("carol/balance", "checking", 100, true, t3, nil, t3, nil)
 
-	tableName := "balances"
-	db, err := NewTableDB(sqlDB, tableName, "id")
+	return sqlDB
+}
+
+func TestQuery(t *testing.T) {
+	sqlDB := setupTestDB(t)
+	defer closeDB(sqlDB)
+
+	db, err := NewTableDB(sqlDB, "balances", "id")
 	require.Nil(t, err)
 
 	testCases := []struct {
