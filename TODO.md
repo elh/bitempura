@@ -19,6 +19,7 @@
     - [ ] History API?
         - [ ] ReadOpt's for History
     - [x] SQL querying
+    - [ ] support composite PKs
 - [x] Exported DB test harness
 - [ ] Exported ReadOpt and WriteOpt handling
 - [ ] bitempur-ize existing SQL table

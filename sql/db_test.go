@@ -25,15 +25,61 @@ var (
 )
 
 // func TestGet(t *testing.T) {
-// 	dbtest.TestGet(t, func(kvs []*bt.VersionedKV) (bt.DB, error) {
+// 	oldValue := map[string]interface{}{
+// 		"id":        "alice/balance",
+// 		"type":      "checking",
+// 		"balance":   0,
+// 		"is_active": false,
+// 	}
+// 	newValue := map[string]interface{}{
+// 		"id":        "alice/balance",
+// 		"type":      "checking",
+// 		"balance":   100,
+// 		"is_active": true,
+// 	}
+// 	dbtest.TestGet(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, error) {
 // 		file := "bitempura_test.db"
 // 		sqlDB, err := sql.Open("sqlite3", file)
 // 		defer closeDB(sqlDB)
 // 		require.Nil(t, err)
 
+// 		// TODO: seed kvs
+// 		// TODO: implement get
+// 		// TODO: parameterize tests based on kvs
 // 		return NewTableDB(sqlDB, "balances", "id")
 // 	})
 // }
+
+// insertKV inserts a single versioned key-value pair directly into the database.
+func insertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) error {
+	// key and time fields
+	cols := []string{pkColumnName, "__bt_id", "__bt_tx_time_start", "__bt_tx_time_end", "__bt_valid_time_start", "__bt_valid_time_end"}
+	vals := []interface{}{kv.Key, uuid.New().String(), kv.TxTimeStart, kv.TxTimeEnd, kv.ValidTimeStart, kv.ValidTimeEnd}
+
+	// value
+	valueMap, ok := kv.Value.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("value must be of type map[string]interface{}")
+	}
+	for k, v := range valueMap {
+		cols = append(cols, k)
+		vals = append(vals, v)
+	}
+
+	_, err := squirrel.
+		Insert(tableName).
+		Columns(cols...).
+		Values(vals...).
+		RunWith(db).
+		Exec()
+	return err
+}
+
+func mustInsertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) {
+	if err := insertKV(db, tableName, pkColumnName, kv); err != nil {
+		panic(err)
+	}
+}
 
 // setupTestDB returns a SQLite database with a bitemporal table named "balances" seeded for tests. Caller must close
 // the db.
@@ -67,43 +113,18 @@ func setupTestDB(t *testing.T) *sql.DB {
 
 	insert := func(id, balanceType string, balance float64, isActive bool, txTimeStart time.Time, txEndTime *time.Time,
 		validTimeStart time.Time, validEndTime *time.Time) {
-		_, err = sqlDB.Exec(`
-			INSERT INTO balances
-			(
-				id,
-				type,
-				balance,
-				is_active,
-				__bt_id,
-				__bt_tx_time_start,
-				__bt_tx_time_end,
-				__bt_valid_time_start,
-				__bt_valid_time_end
-			)
-			VALUES
-			(
-				?,
-				?,
-				?,
-				?,
-				?,
-				?,
-				?,
-				?,
-				?
-			);
-		`,
-			id,
-			balanceType,
-			balance,
-			isActive,
-			uuid.New().String(),
-			txTimeStart,
-			txEndTime,
-			validTimeStart,
-			validEndTime,
-		)
-		require.Nil(t, err)
+		mustInsertKV(sqlDB, "balances", "id", &bt.VersionedKV{
+			Key: id,
+			Value: map[string]interface{}{
+				"type":      balanceType,
+				"balance":   balance,
+				"is_active": isActive,
+			},
+			TxTimeStart:    txTimeStart,
+			TxTimeEnd:      txEndTime,
+			ValidTimeStart: validTimeStart,
+			ValidTimeEnd:   validEndTime,
+		})
 	}
 
 	fmt.Println("alice: at t1, checking account has $100 in it and is active") // alice
