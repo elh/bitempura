@@ -23,93 +23,50 @@ var (
 	t1 = time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
 	t2 = t1.AddDate(0, 0, 1)
 	t3 = t1.AddDate(0, 0, 2)
-)
 
-func TestGet(t *testing.T) {
-	oldValue := map[string]interface{}{
+	oldValue = map[string]interface{}{
 		"type":      "checking",
 		"balance":   0.0,
 		"is_active": false,
 	}
-	newValue := map[string]interface{}{
+	newValue = map[string]interface{}{
 		"type":      "checking",
 		"balance":   100.0,
 		"is_active": true,
 	}
+)
+
+func TestGet(t *testing.T) {
 	dbtest.TestGet(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, func(), error) {
 		sqlDB := setupTestDB(t)
-
 		for _, kv := range kvs {
 			mustInsertKV(sqlDB, "balances", "id", kv)
 		}
-
 		db, err := NewTableDB(sqlDB, "balances", "id")
 		return db, closeDBFn(sqlDB), err
 	})
 }
 
-// insertKV inserts a single versioned key-value pair directly into the database.
-func insertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) error {
-	// key and time fields
-	cols := []string{pkColumnName, "__bt_id", "__bt_tx_time_start", "__bt_tx_time_end", "__bt_valid_time_start", "__bt_valid_time_end"}
-	vals := []interface{}{kv.Key, uuid.New().String(), kv.TxTimeStart, kv.TxTimeEnd, kv.ValidTimeStart, kv.ValidTimeEnd}
-
-	// value
-	valueMap, ok := kv.Value.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("value must be of type map[string]interface{}")
-	}
-	for k, v := range valueMap {
-		cols = append(cols, k)
-		vals = append(vals, v)
-	}
-
-	_, err := squirrel.
-		Insert(tableName).
-		Columns(cols...).
-		Values(vals...).
-		RunWith(db).
-		Exec()
-	return err
+func TestList(t *testing.T) {
+	dbtest.TestList(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, func(), error) {
+		sqlDB := setupTestDB(t)
+		for _, kv := range kvs {
+			mustInsertKV(sqlDB, "balances", "id", kv)
+		}
+		db, err := NewTableDB(sqlDB, "balances", "id")
+		return db, closeDBFn(sqlDB), err
+	})
 }
 
-func mustInsertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) {
-	if err := insertKV(db, tableName, pkColumnName, kv); err != nil {
-		panic(err)
-	}
-}
-
-// setupTestDB returns a SQLite database with a bitemporal table named "balances" seeded for tests. Caller must close
-// the db.
-func setupTestDB(t *testing.T) *sql.DB {
-	file := "bitempura_test.db"
-	err := os.Remove(file)
-	var pathErr *os.PathError
-	require.True(t, err == nil || errors.As(err, &pathErr), err)
-
-	sqlDB, err := sql.Open("sqlite3", file)
-	require.Nil(t, err)
-
-	// set up table manually for early proof of concept check. Query is more exciting and writes are harder
-	// NOTE: Oof... "Bitempur-izing" an existing table almost 100% will need to create a side table for it
-	// becuase we will be taking the natural key and no longer making it a unique primary key
-	_, err = sqlDB.Exec(`
-		CREATE TABLE balances (
-			id TEXT NOT NULL, 				-- PK of the base table
-			type TEXT NOT NULL,
-			balance REAL NOT NULL,
-			is_active BOOLEAN NOT NULL,
-
-			__bt_id TEXT PRIMARY KEY, 		-- dang... forgot that this definitely needs a side table because of PK
-			__bt_tx_time_start TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			__bt_tx_time_end TIMESTAMP NULL,
-			__bt_valid_time_start TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			__bt_valid_time_end TIMESTAMP NULL
-		);
-	`)
-	require.Nil(t, err)
-
-	return sqlDB
+func TestHistory(t *testing.T) {
+	dbtest.TestHistory(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, func(), error) {
+		sqlDB := setupTestDB(t)
+		for _, kv := range kvs {
+			mustInsertKV(sqlDB, "balances", "id", kv)
+		}
+		db, err := NewTableDB(sqlDB, "balances", "id")
+		return db, closeDBFn(sqlDB), err
+	})
 }
 
 func TestQuery(t *testing.T) {
@@ -264,6 +221,39 @@ func TestQuery(t *testing.T) {
 	}
 }
 
+// setupTestDB returns a SQLite database with a bitemporal table named "balances" seeded for tests. Caller must close
+// the db.
+func setupTestDB(t *testing.T) *sql.DB {
+	file := "bitempura_test.db"
+	err := os.Remove(file)
+	var pathErr *os.PathError
+	require.True(t, err == nil || errors.As(err, &pathErr), err)
+
+	sqlDB, err := sql.Open("sqlite3", file)
+	require.Nil(t, err)
+
+	// set up table manually for early proof of concept check. Query is more exciting and writes are harder
+	// NOTE: Oof... "Bitempur-izing" an existing table almost 100% will need to create a side table for it
+	// becuase we will be taking the natural key and no longer making it a unique primary key
+	_, err = sqlDB.Exec(`
+		CREATE TABLE balances (
+			id TEXT NOT NULL, 				-- PK of the base table
+			type TEXT NOT NULL,
+			balance REAL NOT NULL,
+			is_active BOOLEAN NOT NULL,
+
+			__bt_id TEXT PRIMARY KEY, 		-- dang... forgot that this definitely needs a side table because of PK
+			__bt_tx_time_start TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			__bt_tx_time_end TIMESTAMP NULL,
+			__bt_valid_time_start TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			__bt_valid_time_end TIMESTAMP NULL
+		);
+	`)
+	require.Nil(t, err)
+
+	return sqlDB
+}
+
 // do not nil point exception on defer. explicitly ignore error for lint warnings
 func closeDB(db *sql.DB) {
 	if db != nil {
@@ -275,6 +265,37 @@ func closeDB(db *sql.DB) {
 func closeDBFn(db *sql.DB) func() {
 	return func() {
 		closeDB(db)
+	}
+}
+
+// insertKV inserts a single versioned key-value pair directly into the database.
+func insertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) error {
+	// key and time fields
+	cols := []string{pkColumnName, "__bt_id", "__bt_tx_time_start", "__bt_tx_time_end", "__bt_valid_time_start", "__bt_valid_time_end"}
+	vals := []interface{}{kv.Key, uuid.New().String(), kv.TxTimeStart, kv.TxTimeEnd, kv.ValidTimeStart, kv.ValidTimeEnd}
+
+	// value
+	valueMap, ok := kv.Value.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("value must be of type map[string]interface{}")
+	}
+	for k, v := range valueMap {
+		cols = append(cols, k)
+		vals = append(vals, v)
+	}
+
+	_, err := squirrel.
+		Insert(tableName).
+		Columns(cols...).
+		Values(vals...).
+		RunWith(db).
+		Exec()
+	return err
+}
+
+func mustInsertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) {
+	if err := insertKV(db, tableName, pkColumnName, kv); err != nil {
+		panic(err)
 	}
 }
 

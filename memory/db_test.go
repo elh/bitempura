@@ -1,7 +1,6 @@
 package memory_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -29,15 +28,6 @@ func mustParseTime(layout, value string) time.Time {
 		panic(err)
 	}
 	return t
-}
-
-//nolint:unused,deadcode // debug
-func toJSON(v interface{}) string {
-	out, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	return string(out)
 }
 
 // values can be any type but I will standardize on "Old", "New", and "Newest" in these tests for legibility
@@ -185,8 +175,9 @@ func TestGet(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	dbtest.TestList(t, func(kvs []*VersionedKV) (DB, error) {
-		return memory.NewDB(memory.WithVersionedKVs(kvs))
+	dbtest.TestList(t, "OLD", "NEW", func(kvs []*VersionedKV) (DB, func(), error) {
+		db, err := memory.NewDB(memory.WithVersionedKVs(kvs))
+		return db, func() {}, err
 	})
 }
 
@@ -203,7 +194,8 @@ func TestDelete(t *testing.T) {
 }
 
 func TestHistory(t *testing.T) {
-	dbtest.TestHistory(t, func(kvs []*VersionedKV) (DB, error) {
-		return memory.NewDB(memory.WithVersionedKVs(kvs))
+	dbtest.TestHistory(t, "OLD", "NEW", func(kvs []*VersionedKV) (DB, func(), error) {
+		db, err := memory.NewDB(memory.WithVersionedKVs(kvs))
+		return db, func() {}, err
 	})
 }

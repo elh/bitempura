@@ -38,7 +38,6 @@ type TableDB struct {
 }
 
 // Get data by key (as of optional valid and transaction times).
-// WARNING: unimplemented
 func (db *TableDB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) {
 	// SELECT *
 	// FROM <table>
@@ -49,7 +48,6 @@ func (db *TableDB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) 
 	//		__bt_valid_time_start <= <as_of_valid_time> AND
 	//		(__bt_valid_time_end IS NULL OR __bt_valid_time_end > <as_of_valid_time>)
 	// LIMIT 1
-
 	b := squirrel.Select("*").
 		From(db.table).
 		Where(squirrel.Eq{db.pkColumnName: key}).
@@ -67,12 +65,10 @@ func (db *TableDB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) 
 	if len(kvs) == 0 {
 		return nil, bt.ErrNotFound
 	}
-
 	return kvs[0], nil
 }
 
 // List all data (as of optional valid and transaction times).
-// WARNING: unimplemented
 func (db *TableDB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
 	// SELECT *
 	// FROM <table>
@@ -82,7 +78,19 @@ func (db *TableDB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
 	//		(__bt_tx_time_end IS NULL OR __bt_tx_time_end > <as_of_tx_time>) AND
 	//		__bt_valid_time_start <= <as_of_valid_time> AND
 	//		(__bt_valid_time_end IS NULL OR __bt_valid_time_end > <as_of_valid_time>)
-	return nil, errors.New("unimplemented")
+	b := squirrel.Select("*").
+		From(db.table)
+	rows, err := db.Select(b, opts...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	kvs, err := ScanToVersionedKVs(db.pkColumnName, rows)
+	if err != nil {
+		return nil, err
+	}
+	return kvs, nil
 }
 
 // Set stores value (with optional start and end valid time).
@@ -106,13 +114,31 @@ func (db *TableDB) Delete(key string, opts ...bt.WriteOpt) error {
 }
 
 // History returns versions by descending end transaction time, descending end valid time
-// WARNING: unimplemented
 func (db *TableDB) History(key string) ([]*bt.VersionedKV, error) {
 	// SELECT *
 	// FROM <table>
 	// WHERE
 	// 		<base table pk> = <key>
-	return nil, errors.New("unimplemented")
+	// ORDER BY __bt_tx_time_end DESC, __bt_valid_time_end DESC
+	rows, err := squirrel.Select("*").
+		From(db.table).
+		Where(squirrel.Eq{db.pkColumnName: key}).
+		OrderBy("__bt_tx_time_end IS NULL DESC, __bt_tx_time_end DESC, __bt_valid_time_end IS NULL DESC, __bt_valid_time_end DESC").
+		RunWith(db.eq).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	kvs, err := ScanToVersionedKVs(db.pkColumnName, rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(kvs) == 0 {
+		return nil, bt.ErrNotFound
+	}
+	return kvs, nil
 }
 
 // Select executes a SQL query (as of optional valid and transaction times).
