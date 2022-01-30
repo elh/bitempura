@@ -58,6 +58,17 @@ func TestList(t *testing.T) {
 	})
 }
 
+func TestHistory(t *testing.T) {
+	dbtest.TestHistory(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, func(), error) {
+		sqlDB := setupTestDB(t)
+		for _, kv := range kvs {
+			mustInsertKV(sqlDB, "balances", "id", kv)
+		}
+		db, err := NewTableDB(sqlDB, "balances", "id")
+		return db, closeDBFn(sqlDB), err
+	})
+}
+
 func TestQuery(t *testing.T) {
 	sqlDB := setupTestDB(t)
 	defer closeDB(sqlDB)

@@ -114,13 +114,31 @@ func (db *TableDB) Delete(key string, opts ...bt.WriteOpt) error {
 }
 
 // History returns versions by descending end transaction time, descending end valid time
-// WARNING: unimplemented
 func (db *TableDB) History(key string) ([]*bt.VersionedKV, error) {
 	// SELECT *
 	// FROM <table>
 	// WHERE
 	// 		<base table pk> = <key>
-	return nil, errors.New("unimplemented")
+	// ORDER BY __bt_tx_time_end DESC, __bt_valid_time_end DESC
+	rows, err := squirrel.Select("*").
+		From(db.table).
+		Where(squirrel.Eq{db.pkColumnName: key}).
+		OrderBy("__bt_tx_time_end IS NULL DESC, __bt_tx_time_end DESC, __bt_valid_time_end IS NULL DESC, __bt_valid_time_end DESC").
+		RunWith(db.eq).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	kvs, err := ScanToVersionedKVs(db.pkColumnName, rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(kvs) == 0 {
+		return nil, bt.ErrNotFound
+	}
+	return kvs, nil
 }
 
 // Select executes a SQL query (as of optional valid and transaction times).

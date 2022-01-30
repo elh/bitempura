@@ -1,6 +1,7 @@
 package dbtest
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"testing"
@@ -1246,8 +1247,8 @@ func TestDelete(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, er
 }
 
 // TestHistory tests the History function. dbFn must return a DB under test with the VersionedKV's stored in the
-// database.
-func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
+// database and a function to close the DB after the test is complete.
+func TestHistory(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*VersionedKV) (db DB, closeFn func(), err error)) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
@@ -1265,7 +1266,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 			}
 		},
@@ -1281,7 +1282,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 			}
 		},
@@ -1298,7 +1299,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 				{
 					Key:            "A",
@@ -1306,7 +1307,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 				{
 					Key:            "A",
@@ -1314,7 +1315,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t3,
 					ValidTimeEnd:   nil,
-					Value:          "New",
+					Value:          newValue,
 				},
 			}
 		},
@@ -1329,7 +1330,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      &t3,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   nil,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 				{
 					Key:            "A",
@@ -1337,7 +1338,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 					TxTimeEnd:      nil,
 					ValidTimeStart: t1,
 					ValidTimeEnd:   &t3,
-					Value:          "Old",
+					Value:          oldValue,
 				},
 			}
 		},
@@ -1381,7 +1382,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 					},
 				},
@@ -1400,7 +1401,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t3,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 					},
 				},
@@ -1419,7 +1420,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   nil,
-							Value:          "New",
+							Value:          newValue,
 						},
 						{
 							Key:            "A",
@@ -1427,7 +1428,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t3,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 						{
 							Key:            "A",
@@ -1435,7 +1436,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 					},
 				},
@@ -1454,7 +1455,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t3,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 						{
 							Key:            "A",
@@ -1462,7 +1463,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 					},
 				},
@@ -1479,7 +1480,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   &t4,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 						{
 							Key:            "A",
@@ -1487,7 +1488,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t2,
-							Value:          "New",
+							Value:          newValue,
 						},
 					}
 				},
@@ -1503,7 +1504,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t2,
-							Value:          "New",
+							Value:          newValue,
 						},
 						{
 							Key:            "A",
@@ -1511,7 +1512,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   &t4,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 					},
 				},
@@ -1528,7 +1529,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t2,
-							Value:          "New",
+							Value:          newValue,
 						},
 						{
 							Key:            "A",
@@ -1536,7 +1537,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   &t4,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 					}
 				},
@@ -1552,7 +1553,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   &t4,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 						{
 							Key:            "A",
@@ -1560,7 +1561,7 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t2,
-							Value:          "New",
+							Value:          newValue,
 						},
 					},
 				},
@@ -1572,7 +1573,8 @@ func TestHistory(t *testing.T, dbFn func(kvs []*VersionedKV) (DB, error)) {
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := dbFn(s.fixtures.vKVs())
+				db, closeFn, err := dbFn(s.fixtures.vKVs())
+				defer closeFn()
 				require.Nil(t, err)
 				ret, err := db.History(tC.key)
 				if tC.expectErrNotFound {
@@ -1595,4 +1597,13 @@ func sortKVsByKey(ds []*VersionedKV) []*VersionedKV {
 	copy(out, ds)
 	sort.Slice(out, func(i, j int) bool { return out[i].Key < out[j].Key })
 	return out
+}
+
+//nolint:unused,deadcode // debug
+func toJSON(v interface{}) string {
+	out, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return string(out)
 }
