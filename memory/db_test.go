@@ -188,8 +188,9 @@ func TestSet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	dbtest.TestDelete(t, func(kvs []*VersionedKV, clock Clock) (DB, error) {
-		return memory.NewDB(memory.WithVersionedKVs(kvs), memory.WithClock(clock))
+	dbtest.TestDelete(t, "OLD", "NEW", func(kvs []*VersionedKV, clock Clock) (DB, func(), error) {
+		db, err := memory.NewDB(memory.WithVersionedKVs(kvs), memory.WithClock(clock))
+		return db, func() {}, err
 	})
 }
 
