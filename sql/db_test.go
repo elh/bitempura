@@ -25,14 +25,18 @@ var (
 	t3 = t1.AddDate(0, 0, 2)
 
 	oldValue = map[string]interface{}{
-		"type":      "checking",
-		"balance":   0.0,
-		"is_active": false,
+		"type":       "checking",
+		"balance":    0.0,
+		"is_active":  false,
+		"updated_at": t1,
+		"deleted_at": nil,
 	}
 	newValue = map[string]interface{}{
-		"type":      "checking",
-		"balance":   100.0,
-		"is_active": true,
+		"type":       "checking",
+		"balance":    100.0,
+		"is_active":  true,
+		"updated_at": t2,
+		"deleted_at": nil,
 	}
 )
 
@@ -90,9 +94,11 @@ func TestQuery(t *testing.T) {
 		mustInsertKV(sqlDB, "balances", "id", &bt.VersionedKV{
 			Key: id,
 			Value: map[string]interface{}{
-				"type":      balanceType,
-				"balance":   balance,
-				"is_active": isActive,
+				"type":       balanceType,
+				"balance":    balance,
+				"is_active":  isActive,
+				"updated_at": txTimeStart,
+				"deleted_at": nil,
 			},
 			TxTimeStart:    txTimeStart,
 			TxTimeEnd:      txEndTime,
@@ -138,10 +144,12 @@ func TestQuery(t *testing.T) {
 					"__bt_tx_time_start":    t3,
 					"__bt_valid_time_end":   nil,
 					"__bt_valid_time_start": t3,
-					"balance":               200.0,
 					"id":                    "alice/balance",
-					"is_active":             true,
 					"type":                  "checking",
+					"balance":               200.0,
+					"is_active":             true,
+					"updated_at":            t3,
+					"deleted_at":            nil,
 				},
 				{
 					"__bt_id":               "NOT COMPARED",
@@ -149,10 +157,12 @@ func TestQuery(t *testing.T) {
 					"__bt_tx_time_start":    t2,
 					"__bt_valid_time_end":   nil,
 					"__bt_valid_time_start": t1,
-					"balance":               300.0,
 					"id":                    "bob/balance",
-					"is_active":             true,
 					"type":                  "savings",
+					"balance":               300.0,
+					"is_active":             true,
+					"updated_at":            t2,
+					"deleted_at":            nil,
 				},
 				{
 					"__bt_id":               "NOT COMPARED",
@@ -160,10 +170,12 @@ func TestQuery(t *testing.T) {
 					"__bt_tx_time_start":    t3,
 					"__bt_valid_time_end":   nil,
 					"__bt_valid_time_start": t3,
-					"balance":               100.0,
 					"id":                    "carol/balance",
-					"is_active":             true,
 					"type":                  "checking",
+					"balance":               100.0,
+					"is_active":             true,
+					"updated_at":            t3,
+					"deleted_at":            nil,
 				},
 			},
 		},
@@ -244,13 +256,30 @@ func setupTestDB(t *testing.T) *sql.DB {
 	sqlDB, err := sql.Open("sqlite3", file)
 	require.Nil(t, err)
 
-	// set up table manually for early proof of concept check. Query is more exciting and writes are harder
+	// set up table manually for early proof of concept check. this will serve as the "golded" data for future
+	// automated setup of bitemporal databases.
 	_, err = sqlDB.Exec(`
-		CREATE TABLE __bt_balances_states (
-			id TEXT NOT NULL, 				-- PK of the base table
+		CREATE TABLE balances (
+			id TEXT NOT NULL PRIMARY KEY,
 			type TEXT NOT NULL,
 			balance REAL NOT NULL,
 			is_active BOOLEAN NOT NULL,
+
+			-- optional timestamp fields which can be used for controlling tranasction time in the state table.
+			-- primary use case is for testing. if not provided, triggers will use DB's notion of current timestamp.
+			updated_at TIMESTAMP NOT NULL,
+			deleted_at TIMESTAMP NULL
+		);
+	`)
+	require.Nil(t, err)
+	_, err = sqlDB.Exec(`
+		CREATE TABLE __bt_balances_states (
+			id TEXT NOT NULL, 					-- PK of the base table
+			type TEXT NOT NULL,
+			balance REAL NOT NULL,
+			is_active BOOLEAN NOT NULL,
+			updated_at TIMESTAMP NOT NULL,
+			deleted_at TIMESTAMP NULL,
 
 			__bt_id TEXT PRIMARY KEY,
 			__bt_tx_time_start TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
