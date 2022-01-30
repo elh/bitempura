@@ -12,14 +12,14 @@
     - [x] Show issue with race detector
     - [x] Actually run race detector in build
 - [ ] SQL backed implementation
-    - [ ] Get
+    - [x] Get
     - [ ] List
     - [ ] Set
     - [ ] Delete
     - [ ] History API?
         - [ ] ReadOpt's for History
     - [x] SQL querying
-    - [ ] support composite PKs
+    - [ ] support composite PKs, non-string PKs
 - [x] Exported DB test harness
 - [ ] Exported ReadOpt and WriteOpt handling
 - [ ] bitempur-ize existing SQL table

@@ -31,8 +31,9 @@ func mustParseTime(layout, value string) time.Time {
 	return t
 }
 
-// TestGet tests the Get function. dbFn must return a DB under test with the VersionedKV's stored in the database.
-func TestGet(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*VersionedKV) (DB, error)) {
+// TestGet tests the Get function. dbFn must return a DB under test with the VersionedKV's stored in the database and
+// a function to close the DB after the test is complete.
+func TestGet(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*VersionedKV) (db DB, closeFn func(), err error)) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
@@ -291,7 +292,8 @@ func TestGet(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*VersionedK
 		for _, tC := range s.testCases {
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
-				db, err := dbFn(s.fixtures.vKVs())
+				db, closeFn, err := dbFn(s.fixtures.vKVs())
+				defer closeFn()
 				require.Nil(t, err)
 				ret, err := db.Get(tC.key, tC.readOpts...)
 				if tC.expectErrNotFound {

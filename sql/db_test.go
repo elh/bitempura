@@ -11,6 +11,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	bt "github.com/elh/bitempura"
+	"github.com/elh/bitempura/dbtest"
 	. "github.com/elh/bitempura/sql"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
@@ -24,31 +25,28 @@ var (
 	t3 = t1.AddDate(0, 0, 2)
 )
 
-// func TestGet(t *testing.T) {
-// 	oldValue := map[string]interface{}{
-// 		"id":        "alice/balance",
-// 		"type":      "checking",
-// 		"balance":   0,
-// 		"is_active": false,
-// 	}
-// 	newValue := map[string]interface{}{
-// 		"id":        "alice/balance",
-// 		"type":      "checking",
-// 		"balance":   100,
-// 		"is_active": true,
-// 	}
-// 	dbtest.TestGet(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, error) {
-// 		file := "bitempura_test.db"
-// 		sqlDB, err := sql.Open("sqlite3", file)
-// 		defer closeDB(sqlDB)
-// 		require.Nil(t, err)
+func TestGet(t *testing.T) {
+	oldValue := map[string]interface{}{
+		"type":      "checking",
+		"balance":   0.0,
+		"is_active": false,
+	}
+	newValue := map[string]interface{}{
+		"type":      "checking",
+		"balance":   100.0,
+		"is_active": true,
+	}
+	dbtest.TestGet(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, func(), error) {
+		sqlDB := setupTestDB(t)
 
-// 		// TODO: seed kvs
-// 		// TODO: implement get
-// 		// TODO: parameterize tests based on kvs
-// 		return NewTableDB(sqlDB, "balances", "id")
-// 	})
-// }
+		for _, kv := range kvs {
+			mustInsertKV(sqlDB, "balances", "id", kv)
+		}
+
+		db, err := NewTableDB(sqlDB, "balances", "id")
+		return db, closeDBFn(sqlDB), err
+	})
+}
 
 // insertKV inserts a single versioned key-value pair directly into the database.
 func insertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) error {
@@ -111,6 +109,13 @@ func setupTestDB(t *testing.T) *sql.DB {
 	`)
 	require.Nil(t, err)
 
+	return sqlDB
+}
+
+func TestQuery(t *testing.T) {
+	sqlDB := setupTestDB(t)
+	defer closeDB(sqlDB)
+
 	insert := func(id, balanceType string, balance float64, isActive bool, txTimeStart time.Time, txEndTime *time.Time,
 		validTimeStart time.Time, validEndTime *time.Time) {
 		mustInsertKV(sqlDB, "balances", "id", &bt.VersionedKV{
@@ -144,13 +149,6 @@ func setupTestDB(t *testing.T) *sql.DB {
 	fmt.Println("carol: at t3, oh no! realized it was re-actived at t2 but amount was wrong; it was $10. it's 100 now though")
 	insert("carol/balance", "checking", 10, true, t3, nil, t1, &t3)
 	insert("carol/balance", "checking", 100, true, t3, nil, t3, nil)
-
-	return sqlDB
-}
-
-func TestQuery(t *testing.T) {
-	sqlDB := setupTestDB(t)
-	defer closeDB(sqlDB)
 
 	db, err := NewTableDB(sqlDB, "balances", "id")
 	require.Nil(t, err)
@@ -248,7 +246,7 @@ func TestQuery(t *testing.T) {
 			require.Nil(t, err)
 			defer rows.Close()
 
-			out, err := scanToMaps(rows)
+			out, err := ScanToMaps(rows)
 			require.Nil(t, err)
 			fmt.Println(toJSON(out))
 
@@ -266,50 +264,17 @@ func TestQuery(t *testing.T) {
 	}
 }
 
-// scanToMap generically scans SQL rows into a slice of maps with columns as map keys
-// caller should defer rows.Close() but does not need to call rows.Err()
-func scanToMaps(rows *sql.Rows) ([]map[string]interface{}, error) {
-	var out []map[string]interface{}
-
-	cols, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		rowMap, err := scanToMap(rows, cols)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, rowMap)
-	}
-	if err = rows.Err(); err != nil {
-		panic(err)
-	}
-	return out, nil
-}
-
-func scanToMap(row *sql.Rows, cols []string) (map[string]interface{}, error) {
-	fields := make([]interface{}, len(cols))
-	fieldPtrs := make([]interface{}, len(cols))
-	for i := range fields {
-		fieldPtrs[i] = &fields[i]
-	}
-
-	if err := row.Scan(fieldPtrs...); err != nil {
-		return nil, err
-	}
-
-	out := map[string]interface{}{}
-	for i, col := range cols {
-		out[col] = fields[i]
-	}
-	return out, nil
-}
-
-// do not nil point exception on defer
+// do not nil point exception on defer. explicitly ignore error for lint warnings
 func closeDB(db *sql.DB) {
 	if db != nil {
 		_ = db.Close()
+	}
+}
+
+// return a close function for clean up in tests
+func closeDBFn(db *sql.DB) func() {
+	return func() {
+		closeDB(db)
 	}
 }
 

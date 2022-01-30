@@ -178,8 +178,9 @@ func TestConstructor(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	dbtest.TestGet(t, "OLD", "NEW", func(kvs []*VersionedKV) (DB, error) {
-		return memory.NewDB(memory.WithVersionedKVs(kvs))
+	dbtest.TestGet(t, "OLD", "NEW", func(kvs []*VersionedKV) (DB, func(), error) {
+		db, err := memory.NewDB(memory.WithVersionedKVs(kvs))
+		return db, func() {}, err
 	})
 }
 
