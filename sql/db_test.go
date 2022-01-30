@@ -221,8 +221,8 @@ func TestQuery(t *testing.T) {
 	}
 }
 
-// setupTestDB returns a SQLite database with a bitemporal table named "balances" seeded for tests. Caller must close
-// the db.
+// setupTestDB returns a SQLite database with a bitemporal stable table named __bt_balances_states seeded for tests.
+// Caller must close the db.
 func setupTestDB(t *testing.T) *sql.DB {
 	file := "bitempura_test.db"
 	err := os.Remove(file)
@@ -233,16 +233,14 @@ func setupTestDB(t *testing.T) *sql.DB {
 	require.Nil(t, err)
 
 	// set up table manually for early proof of concept check. Query is more exciting and writes are harder
-	// NOTE: Oof... "Bitempur-izing" an existing table almost 100% will need to create a side table for it
-	// becuase we will be taking the natural key and no longer making it a unique primary key
 	_, err = sqlDB.Exec(`
-		CREATE TABLE balances (
+		CREATE TABLE __bt_balances_states (
 			id TEXT NOT NULL, 				-- PK of the base table
 			type TEXT NOT NULL,
 			balance REAL NOT NULL,
 			is_active BOOLEAN NOT NULL,
 
-			__bt_id TEXT PRIMARY KEY, 		-- dang... forgot that this definitely needs a side table because of PK
+			__bt_id TEXT PRIMARY KEY,
 			__bt_tx_time_start TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			__bt_tx_time_end TIMESTAMP NULL,
 			__bt_valid_time_start TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -285,7 +283,7 @@ func insertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) er
 	}
 
 	_, err := squirrel.
-		Insert(tableName).
+		Insert(StateTableName(tableName)).
 		Columns(cols...).
 		Values(vals...).
 		RunWith(db).

@@ -3,6 +3,7 @@ package sql
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -19,6 +20,11 @@ type DB interface {
 	Select(query squirrel.SelectBuilder, opts ...bt.ReadOpt) (*sql.Rows, error)
 }
 
+// StateTableName returns the default bitemporal state table name for a given table.
+func StateTableName(tableName string) string {
+	return fmt.Sprintf("__bt_%v_states", tableName)
+}
+
 // NewTableDB constructs a SQL-backed, SQL-queryable, bitemporal database connected to a specific underlying SQL table.
 // WARNING: WIP. this implementation is experimental.
 func NewTableDB(eq ExecerQueryer, table string, pkColumnName string) (DB, error) {
@@ -26,6 +32,7 @@ func NewTableDB(eq ExecerQueryer, table string, pkColumnName string) (DB, error)
 	return &TableDB{
 		eq:           eq,
 		table:        table,
+		stateTable:   StateTableName(table),
 		pkColumnName: pkColumnName,
 	}, nil
 }
@@ -34,6 +41,7 @@ func NewTableDB(eq ExecerQueryer, table string, pkColumnName string) (DB, error)
 type TableDB struct {
 	eq           ExecerQueryer
 	table        string
+	stateTable   string
 	pkColumnName string
 }
 
@@ -49,7 +57,7 @@ func (db *TableDB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) 
 	//		(__bt_valid_time_end IS NULL OR __bt_valid_time_end > <as_of_valid_time>)
 	// LIMIT 1
 	b := squirrel.Select("*").
-		From(db.table).
+		From(db.stateTable).
 		Where(squirrel.Eq{db.pkColumnName: key}).
 		Limit(1)
 	rows, err := db.Select(b, opts...)
@@ -79,7 +87,7 @@ func (db *TableDB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
 	//		__bt_valid_time_start <= <as_of_valid_time> AND
 	//		(__bt_valid_time_end IS NULL OR __bt_valid_time_end > <as_of_valid_time>)
 	b := squirrel.Select("*").
-		From(db.table)
+		From(db.stateTable)
 	rows, err := db.Select(b, opts...)
 	if err != nil {
 		return nil, err
@@ -121,7 +129,7 @@ func (db *TableDB) History(key string) ([]*bt.VersionedKV, error) {
 	// 		<base table pk> = <key>
 	// ORDER BY __bt_tx_time_end DESC, __bt_valid_time_end DESC
 	rows, err := squirrel.Select("*").
-		From(db.table).
+		From(db.stateTable).
 		Where(squirrel.Eq{db.pkColumnName: key}).
 		OrderBy("__bt_tx_time_end IS NULL DESC, __bt_tx_time_end DESC, __bt_valid_time_end IS NULL DESC, __bt_valid_time_end DESC").
 		RunWith(db.eq).
@@ -145,6 +153,8 @@ func (db *TableDB) History(key string) ([]*bt.VersionedKV, error) {
 func (db *TableDB) Select(b squirrel.SelectBuilder, opts ...bt.ReadOpt) (*sql.Rows, error) {
 	options := db.handleReadOpts(opts)
 
+	// override FROM table
+	b = b.From(db.stateTable)
 	// add tx and valid time to query
 	b = b.Where(squirrel.LtOrEq{"__bt_tx_time_start": options.TxTime})
 	b = b.Where(squirrel.Or{squirrel.Eq{"__bt_tx_time_end": nil}, squirrel.Gt{"__bt_tx_time_end": options.TxTime}})

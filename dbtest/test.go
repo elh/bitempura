@@ -912,8 +912,10 @@ func TestSet(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, error
 }
 
 // TestDelete tests the Delete function. dbFn must return a DB under test with the VersionedKV's stored in the database
-// and transaction times provided by the clock.
-func TestDelete(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, error)) {
+// and set transaction times provided by the clock. It must also return a function to close the DB after the test is
+// complete.
+func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*VersionedKV, clock Clock) (db DB,
+	closeFn func(), err error)) {
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
@@ -1220,7 +1222,8 @@ func TestDelete(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, er
 			tC := tC
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				clock := &TestClock{}
-				db, err := dbFn(s.fixtures.vKVs(), clock)
+				db, closeFn, err := dbFn(s.fixtures.vKVs(), clock)
+				defer closeFn()
 				require.Nil(t, err)
 				if tC.now != nil {
 					require.Nil(t, clock.SetNow(*tC.now))
