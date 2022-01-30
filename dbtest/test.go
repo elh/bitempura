@@ -972,7 +972,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 					}
 				},
@@ -1016,7 +1016,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t3,
-								Value:          "Old",
+								Value:          oldValue,
 							},
 						},
 						// before update in transaction time
@@ -1028,7 +1028,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 								TxTimeEnd:      &t3,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Value:          "Old",
+								Value:          oldValue,
 							},
 						},
 					},
@@ -1047,7 +1047,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 								TxTimeEnd:      nil,
 								ValidTimeStart: t3,
 								ValidTimeEnd:   nil,
-								Value:          "Old",
+								Value:          oldValue,
 							},
 						},
 						// query as of now for transaction time, before update for valid time. change not visible
@@ -1059,7 +1059,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t2,
-								Value:          "Old",
+								Value:          oldValue,
 							},
 						},
 						// query as of now for valid time, before update for transaction time. change not visible
@@ -1071,7 +1071,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Value:          "Old",
+								Value:          oldValue,
 							},
 						},
 						// query as of valid time in range, transaction time after update. change visible
@@ -1100,7 +1100,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Value:          "Old",
+								Value:          oldValue,
 							},
 						},
 					},
@@ -1118,7 +1118,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 							TxTimeEnd:      &t3,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   nil,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 						{
 							Key:            "A",
@@ -1126,7 +1126,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 							TxTimeEnd:      nil,
 							ValidTimeStart: t1,
 							ValidTimeEnd:   &t3,
-							Value:          "Old",
+							Value:          oldValue,
 						},
 						{
 							Key:            "A",
@@ -1134,7 +1134,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 							TxTimeEnd:      nil,
 							ValidTimeStart: t3,
 							ValidTimeEnd:   nil,
-							Value:          "New",
+							Value:          newValue,
 						},
 					}
 				},
@@ -1155,7 +1155,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 								TxTimeEnd:      nil,
 								ValidTimeStart: t4,
 								ValidTimeEnd:   nil,
-								Value:          "New",
+								Value:          newValue,
 							},
 						},
 						// TT = t5, VT = t1. after update transaction, not in valid range. too low
@@ -1167,7 +1167,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 								TxTimeEnd:      nil,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t2,
-								Value:          "Old",
+								Value:          oldValue,
 							},
 						},
 						// TT = t5, VT = t3. after update transaction, in valid range
@@ -1184,7 +1184,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   &t3,
-								Value:          "Old",
+								Value:          oldValue,
 							},
 						},
 						// TT = t3, VT = t4. before update transaction, in the fixture updated range
@@ -1196,7 +1196,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 								TxTimeEnd:      &t4,
 								ValidTimeStart: t3,
 								ValidTimeEnd:   nil,
-								Value:          "New",
+								Value:          newValue,
 							},
 						},
 						// TT = t2, VT = t2. before 1st fixture update transaction
@@ -1208,7 +1208,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 								TxTimeEnd:      &t3,
 								ValidTimeStart: t1,
 								ValidTimeEnd:   nil,
-								Value:          "Old",
+								Value:          oldValue,
 							},
 						},
 					},

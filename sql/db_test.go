@@ -58,6 +58,18 @@ func TestList(t *testing.T) {
 	})
 }
 
+// func TestDelete(t *testing.T) {
+// 	dbtest.TestDelete(t, oldValue, newValue, func(kvs []*bt.VersionedKV, clock bt.Clock) (db bt.DB, closeFn func(), err error) {
+// 		sqlDB := setupTestDB(t)
+// 		for _, kv := range kvs {
+// 			mustInsertKV(sqlDB, "balances", "id", kv)
+// 		}
+// 		// TODO: control TX in clock...
+// 		db, err = NewTableDB(sqlDB, "balances", "id")
+// 		return db, closeDBFn(sqlDB), err
+// 	})
+// }
+
 func TestHistory(t *testing.T) {
 	dbtest.TestHistory(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, func(), error) {
 		sqlDB := setupTestDB(t)
