@@ -32,14 +32,14 @@ type WriteOptions struct {
 // WriteOpt is an option for database writes
 type WriteOpt func(*WriteOptions)
 
-// WithValidTime allows writer to configure explicit valid time
+// WithValidTime allows writer to configure explicit valid time. Valid times cannot be set in the future.
 func WithValidTime(t time.Time) WriteOpt {
 	return func(os *WriteOptions) {
 		os.ValidTime = t
 	}
 }
 
-// WithEndValidTime allows writer to configure explicit end valid time
+// WithEndValidTime allows writer to configure explicit end valid time. Valid times cannot be set in the future.
 func WithEndValidTime(t time.Time) WriteOpt {
 	return func(os *WriteOptions) {
 		os.EndValidTime = &t

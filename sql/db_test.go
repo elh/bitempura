@@ -46,7 +46,7 @@ func TestGet(t *testing.T) {
 		for _, kv := range kvs {
 			mustInsertKV(sqlDB, "balances", "id", kv)
 		}
-		db, err := NewTableDB(sqlDB, "balances", "id")
+		db, err := NewTableDB(sqlDB, "balances", "id", toStringPtr("updated_at"), toStringPtr("deleted_at"))
 		return db, closeDBFn(sqlDB), err
 	})
 }
@@ -57,7 +57,7 @@ func TestList(t *testing.T) {
 		for _, kv := range kvs {
 			mustInsertKV(sqlDB, "balances", "id", kv)
 		}
-		db, err := NewTableDB(sqlDB, "balances", "id")
+		db, err := NewTableDB(sqlDB, "balances", "id", toStringPtr("updated_at"), toStringPtr("deleted_at"))
 		return db, closeDBFn(sqlDB), err
 	})
 }
@@ -80,7 +80,7 @@ func TestHistory(t *testing.T) {
 		for _, kv := range kvs {
 			mustInsertKV(sqlDB, "balances", "id", kv)
 		}
-		db, err := NewTableDB(sqlDB, "balances", "id")
+		db, err := NewTableDB(sqlDB, "balances", "id", toStringPtr("updated_at"), toStringPtr("deleted_at"))
 		return db, closeDBFn(sqlDB), err
 	})
 }
@@ -125,7 +125,7 @@ func TestQuery(t *testing.T) {
 	insert("carol/balance", "checking", 10, true, t3, nil, t1, &t3)
 	insert("carol/balance", "checking", 100, true, t3, nil, t3, nil)
 
-	db, err := NewTableDB(sqlDB, "balances", "id")
+	db, err := NewTableDB(sqlDB, "balances", "id", toStringPtr("updated_at"), toStringPtr("deleted_at"))
 	require.Nil(t, err)
 
 	testCases := []struct {
@@ -267,7 +267,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 
 			-- optional timestamp fields which can be used for controlling tranasction time in the state table.
 			-- primary use case is for testing. if not provided, triggers will use DB's notion of current timestamp.
-			updated_at TIMESTAMP NOT NULL,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			deleted_at TIMESTAMP NULL
 		);
 	`)
@@ -336,6 +336,10 @@ func mustInsertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV
 	if err := insertKV(db, tableName, pkColumnName, kv); err != nil {
 		panic(err)
 	}
+}
+
+func toStringPtr(s string) *string {
+	return &s
 }
 
 //nolint:unused,deadcode // debug

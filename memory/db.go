@@ -206,6 +206,14 @@ func (db *DB) handleWriteOpts(opts []bt.WriteOpt) (options *bt.WriteOptions, now
 		return nil, time.Time{}, errors.New("valid time start must be before end")
 	}
 
+	// disallow valid times being set in the future
+	if options.ValidTime.After(now) {
+		return nil, time.Time{}, errors.New("valid time start cannot be in the future")
+	}
+	if options.EndValidTime != nil && options.EndValidTime.After(now) {
+		return nil, time.Time{}, errors.New("valid time end cannot be in the future")
+	}
+
 	return options, now, nil
 }
 

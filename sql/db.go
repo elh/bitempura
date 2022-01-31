@@ -27,22 +27,28 @@ func StateTableName(tableName string) string {
 
 // NewTableDB constructs a SQL-backed, SQL-queryable, bitemporal database connected to a specific underlying SQL table.
 // WARNING: WIP. this implementation is experimental.
-func NewTableDB(eq ExecerQueryer, table string, pkColumnName string) (DB, error) {
+func NewTableDB(eq ExecerQueryer, table string, pkColumnName string, updatedAtColName,
+	deletedAtColName *string) (DB, error) {
+	// TODO: convert UpdateAt and DeletedAt columns to options
 	// TODO: support composite PK through a pkFn(key string) Key struct
 	return &TableDB{
-		eq:           eq,
-		table:        table,
-		stateTable:   StateTableName(table),
-		pkColumnName: pkColumnName,
+		eq:               eq,
+		table:            table,
+		stateTable:       StateTableName(table),
+		pkColumnName:     pkColumnName,
+		updatedAtColName: updatedAtColName,
+		deletedAtColName: deletedAtColName,
 	}, nil
 }
 
 // TableDB is a SQL-backed, SQL-queryable, bitemporal database that is connected to a specific underlying SQL table.
 type TableDB struct {
-	eq           ExecerQueryer
-	table        string
-	stateTable   string
-	pkColumnName string
+	eq               ExecerQueryer
+	table            string
+	stateTable       string
+	pkColumnName     string
+	updatedAtColName *string
+	deletedAtColName *string
 }
 
 // Get data by key (as of optional valid and transaction times).
