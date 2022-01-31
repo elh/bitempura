@@ -227,7 +227,7 @@ func TestQuery(t *testing.T) {
 			require.Nil(t, err)
 
 			readOptions := bt.ApplyReadOpts(tC.readOps)
-			fmt.Printf("query: %s %s\n", sqlStr, readOptionsToString(readOptions))
+			printf("query: %s %s\n", sqlStr, readOptionsToString(readOptions))
 			rows, err := db.Select(tC.s, tC.readOps...)
 			require.Nil(t, err)
 			defer rows.Close()
@@ -376,5 +376,11 @@ func toJSON(v interface{}) string {
 func println(v ...interface{}) {
 	if verbose {
 		fmt.Println(v...)
+	}
+}
+
+func printf(format string, a ...interface{}) {
+	if verbose {
+		fmt.Printf(format, a...)
 	}
 }
