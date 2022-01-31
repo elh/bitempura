@@ -23,33 +23,51 @@ type DB interface {
 	History(key string) ([]*VersionedKV, error)
 }
 
-// WriteOptions is a struct for processing WriteOpt's to be used by DB
+// WriteOptions is a struct for processing WriteOpt's specified on writes.
 type WriteOptions struct {
-	ValidTime    time.Time
+	ValidTime    *time.Time
 	EndValidTime *time.Time
+}
+
+// ApplyWriteOpts applies WriteOpt's to a WriteOptions struct for usage by the DB.
+func ApplyWriteOpts(opts []WriteOpt) *WriteOptions {
+	os := &WriteOptions{}
+	for _, opt := range opts {
+		opt(os)
+	}
+	return os
 }
 
 // WriteOpt is an option for database writes
 type WriteOpt func(*WriteOptions)
 
-// WithValidTime allows writer to configure explicit valid time
+// WithValidTime allows writer to configure explicit valid time. Valid times cannot be set in the future.
 func WithValidTime(t time.Time) WriteOpt {
 	return func(os *WriteOptions) {
-		os.ValidTime = t
+		os.ValidTime = &t
 	}
 }
 
-// WithEndValidTime allows writer to configure explicit end valid time
+// WithEndValidTime allows writer to configure explicit end valid time. Valid times cannot be set in the future.
 func WithEndValidTime(t time.Time) WriteOpt {
 	return func(os *WriteOptions) {
 		os.EndValidTime = &t
 	}
 }
 
-// ReadOptions is a struct for processing ReadOpt's to be used by DB
+// ReadOptions is a struct for processing ReadOpt's specified on reads.
 type ReadOptions struct {
-	ValidTime time.Time
-	TxTime    time.Time
+	ValidTime *time.Time
+	TxTime    *time.Time
+}
+
+// ApplyReadOpts applies ReadOpt's to a ReadOptions struct for usage by the DB.
+func ApplyReadOpts(opts []ReadOpt) *ReadOptions {
+	os := &ReadOptions{}
+	for _, opt := range opts {
+		opt(os)
+	}
+	return os
 }
 
 // ReadOpt is an option for database reads
@@ -58,13 +76,13 @@ type ReadOpt func(*ReadOptions)
 // AsOfValidTime allows reader to read as of a specified valid time
 func AsOfValidTime(t time.Time) ReadOpt {
 	return func(os *ReadOptions) {
-		os.ValidTime = t
+		os.ValidTime = &t
 	}
 }
 
 // AsOfTransactionTime allows reader to read as of a specified transaction time
 func AsOfTransactionTime(t time.Time) ReadOpt {
 	return func(os *ReadOptions) {
-		os.TxTime = t
+		os.TxTime = &t
 	}
 }

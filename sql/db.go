@@ -27,22 +27,28 @@ func StateTableName(tableName string) string {
 
 // NewTableDB constructs a SQL-backed, SQL-queryable, bitemporal database connected to a specific underlying SQL table.
 // WARNING: WIP. this implementation is experimental.
-func NewTableDB(eq ExecerQueryer, table string, pkColumnName string) (DB, error) {
+func NewTableDB(eq ExecerQueryer, table string, pkColumnName string, updatedAtColName,
+	deletedAtColName *string) (DB, error) {
+	// TODO: convert UpdateAt and DeletedAt columns to options
 	// TODO: support composite PK through a pkFn(key string) Key struct
 	return &TableDB{
-		eq:           eq,
-		table:        table,
-		stateTable:   StateTableName(table),
-		pkColumnName: pkColumnName,
+		eq:               eq,
+		table:            table,
+		stateTable:       StateTableName(table),
+		pkColumnName:     pkColumnName,
+		updatedAtColName: updatedAtColName,
+		deletedAtColName: deletedAtColName,
 	}, nil
 }
 
 // TableDB is a SQL-backed, SQL-queryable, bitemporal database that is connected to a specific underlying SQL table.
 type TableDB struct {
-	eq           ExecerQueryer
-	table        string
-	stateTable   string
-	pkColumnName string
+	eq               ExecerQueryer
+	table            string
+	stateTable       string
+	pkColumnName     string
+	updatedAtColName *string
+	deletedAtColName *string
 }
 
 // Get data by key (as of optional valid and transaction times).
@@ -118,6 +124,9 @@ func (db *TableDB) Set(key string, value bt.Value, opts ...bt.WriteOpt) error {
 // WARNING: unimplemented
 func (db *TableDB) Delete(key string, opts ...bt.WriteOpt) error {
 	// select out the conflicting records based on the write opt times. update them and add new ones as needed
+	if db.deletedAtColName == nil {
+		return errors.New("Delete without configured DeleteAt column is unimplemented") // TODO: support this
+	}
 	return errors.New("unimplemented")
 }
 
@@ -156,25 +165,35 @@ func (db *TableDB) Select(b squirrel.SelectBuilder, opts ...bt.ReadOpt) (*sql.Ro
 	// override FROM table
 	b = b.From(db.stateTable)
 	// add tx and valid time to query
-	b = b.Where(squirrel.LtOrEq{"__bt_tx_time_start": options.TxTime})
-	b = b.Where(squirrel.Or{squirrel.Eq{"__bt_tx_time_end": nil}, squirrel.Gt{"__bt_tx_time_end": options.TxTime}})
-	b = b.Where(squirrel.LtOrEq{"__bt_valid_time_start": options.ValidTime})
-	b = b.Where(squirrel.Or{squirrel.Eq{"__bt_valid_time_end": nil}, squirrel.Gt{"__bt_valid_time_end": options.ValidTime}})
+	b = b.Where(squirrel.LtOrEq{"__bt_tx_time_start": options.txTime})
+	b = b.Where(squirrel.Or{squirrel.Eq{"__bt_tx_time_end": nil}, squirrel.Gt{"__bt_tx_time_end": options.txTime}})
+	b = b.Where(squirrel.LtOrEq{"__bt_valid_time_start": options.validTime})
+	b = b.Where(squirrel.Or{squirrel.Eq{"__bt_valid_time_end": nil}, squirrel.Gt{"__bt_valid_time_end": options.validTime}})
 
 	return b.RunWith(db.eq).Query()
 }
 
-func (db *TableDB) handleReadOpts(opts []bt.ReadOpt) *bt.ReadOptions {
+type readConfig struct {
+	validTime time.Time
+	txTime    time.Time
+}
+
+func (db *TableDB) handleReadOpts(opts []bt.ReadOpt) *readConfig {
+	options := bt.ApplyReadOpts(opts)
+
 	now := time.Now()
-	options := &bt.ReadOptions{
-		ValidTime: now,
-		TxTime:    now,
+	config := &readConfig{
+		validTime: now,
+		txTime:    now,
 	}
-	for _, opt := range opts {
-		opt(options)
+	if options.ValidTime != nil {
+		config.validTime = *options.ValidTime
+	}
+	if options.TxTime != nil {
+		config.txTime = *options.TxTime
 	}
 
-	return options
+	return config
 }
 
 // ExecerQueryer can Exec or Query. Both sql.DB and sql.Tx satisfy this interface.

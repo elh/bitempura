@@ -5,7 +5,6 @@
     - [x] Set
     - [x] Delete
     - [x] History API?
-        - [ ] ReadOpt's for History
 - [x] [XTDB, Robinhood example tests pass](https://github.com/elh/bitempura/blob/main/memory/db_examples_test.go)
 - [x] Split out in-memory implementation
 - [x] Thread safe writes
@@ -13,15 +12,15 @@
     - [x] Actually run race detector in build
 - [ ] SQL backed implementation
     - [x] Get
-    - [ ] List
+    - [x] List
     - [ ] Set
     - [ ] Delete
-    - [ ] History API?
-        - [ ] ReadOpt's for History
+    - [x] History API?
     - [x] SQL querying
     - [ ] support composite PKs, non-string PKs
 - [x] Exported DB test harness
-- [ ] Exported ReadOpt and WriteOpt handling
+- [x] Exported ReadOpt and WriteOpt handling. Separate provided inputs from resulting options for logging + SQL queries.
+- [ ] ReadOpt's for History
 - [ ] bitempur-ize existing SQL table
 - [ ] Visualizations. Interactive?
 - [ ] Performance/memory usage benchmarking
@@ -35,3 +34,5 @@ Candidates
 - [ ] Separate "db" and "storage" models? first pass was blending XTDB APIs with Snodgrass style records and things are getting muddled. Storage layer will inform choices for querying ability at DB layer.
     - [ ] Should data read and write APIs return tx time and valid time context at all?
 - [ ] Consider Datomic accumulate and retract event style. Immutable storage layer?
+- [ ] Better test DB than sqlite? use cockroachdb/copyist?
+    - [ ] directly control a test db's notion of "current timestamp"? the requirement for deleted_at leads to totally different trigger implementation on UPDATE event instead of DELETE event
