@@ -65,17 +65,17 @@ func TestList(t *testing.T) {
 	})
 }
 
-// func TestDelete(t *testing.T) {
-// 	dbtest.TestDelete(t, oldValue, newValue, func(kvs []*bt.VersionedKV, clock bt.Clock) (bt.DB, func(), error) {
-// 		sqlDB := setupTestDB(t)
-// 		for _, kv := range kvs {
-// 			mustInsertKV(sqlDB, "balances", "id", kv)
-// 		}
-// 		// TODO: control TX in clock...
-// 		db, err := NewTableDB(sqlDB, "balances", "id", toStringPtr("updated_at"), toStringPtr("deleted_at"))
-// 		return db, closeDBFn(sqlDB), err
-// 	})
-// }
+func TestDelete(t *testing.T) {
+	dbtest.TestDelete(t, oldValue, newValue, func(kvs []*bt.VersionedKV, clock bt.Clock) (bt.DB, func(), error) {
+		sqlDB := setupTestDB(t)
+		for _, kv := range kvs {
+			mustInsertKV(sqlDB, "balances", "id", kv)
+		}
+		// TODO: control TX in clock...
+		db, err := NewTableDB(sqlDB, "balances", "id", toStringPtr("updated_at"), toStringPtr("deleted_at"))
+		return db, closeDBFn(sqlDB), err
+	})
+}
 
 func TestHistory(t *testing.T) {
 	dbtest.TestHistory(t, oldValue, newValue, func(kvs []*bt.VersionedKV) (bt.DB, func(), error) {
@@ -311,6 +311,24 @@ func setupTestDB(t *testing.T) *sql.DB {
 		);
 	`)
 	require.Nil(t, err)
+	// TODO: how will we handle reversing soft delete
+	_, err = sqlDB.Exec(`
+		CREATE TRIGGER __bt_balances_on_soft_delete
+			AFTER UPDATE ON balances
+			WHEN OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL
+		BEGIN
+			UPDATE __bt_balances_states
+				SET
+					__bt_tx_time_end = NEW.deleted_at
+				WHERE
+					id = NEW.id AND
+					__bt_tx_time_start <= NEW.deleted_at AND
+					(__bt_tx_time_end IS NULL OR __bt_tx_time_end > NEW.deleted_at) AND
+					__bt_valid_time_start <= NEW.deleted_at AND
+					(__bt_valid_time_end IS NULL OR __bt_valid_time_end > NEW.deleted_at);
+		END;
+	`)
+	require.Nil(t, err)
 
 	return sqlDB
 }
@@ -329,29 +347,64 @@ func closeDBFn(db *sql.DB) func() {
 	}
 }
 
-// insertKV inserts a single versioned key-value pair directly into the database.
+// insertKV inserts a single versioned key-value pair directly into the state table.
+// if kv is an active key value record, insert into the base table.
+// this is a very basic check that assumes that all kv tx time ends are either nil or in the past.
 func insertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) error {
-	// key and time fields
-	cols := []string{pkColumnName, "__bt_id", "__bt_tx_time_start", "__bt_tx_time_end", "__bt_valid_time_start", "__bt_valid_time_end"}
-	vals := []interface{}{kv.Key, uuid.New().String(), kv.TxTimeStart, kv.TxTimeEnd, kv.ValidTimeStart, kv.ValidTimeEnd}
+	// 1. state table
+	{
+		// key and time fields
+		cols := []string{pkColumnName, "__bt_id", "__bt_tx_time_start", "__bt_tx_time_end", "__bt_valid_time_start", "__bt_valid_time_end"}
+		vals := []interface{}{kv.Key, uuid.New().String(), kv.TxTimeStart, kv.TxTimeEnd, kv.ValidTimeStart, kv.ValidTimeEnd}
 
-	// value
-	valueMap, ok := kv.Value.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("value must be of type map[string]interface{}")
-	}
-	for k, v := range valueMap {
-		cols = append(cols, k)
-		vals = append(vals, v)
+		// value
+		valueMap, ok := kv.Value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("value must be of type map[string]interface{}")
+		}
+		for k, v := range valueMap {
+			cols = append(cols, k)
+			vals = append(vals, v)
+		}
+
+		if _, err := squirrel.
+			Insert(StateTableName(tableName)).
+			Columns(cols...).
+			Values(vals...).
+			RunWith(db).
+			Exec(); err != nil {
+			return err
+		}
 	}
 
-	_, err := squirrel.
-		Insert(StateTableName(tableName)).
-		Columns(cols...).
-		Values(vals...).
-		RunWith(db).
-		Exec()
-	return err
+	// 2. base table
+	// TODO: this is very oversimplied check about what should be in the base table right now
+	if kv.TxTimeEnd == nil && kv.ValidTimeEnd == nil {
+		// key and time fields
+		cols := []string{pkColumnName}
+		vals := []interface{}{kv.Key}
+
+		// value
+		valueMap, ok := kv.Value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("value must be of type map[string]interface{}")
+		}
+		for k, v := range valueMap {
+			cols = append(cols, k)
+			vals = append(vals, v)
+		}
+
+		if _, err := squirrel.
+			Insert(tableName).
+			Columns(cols...).
+			Values(vals...).
+			RunWith(db).
+			Exec(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func mustInsertKV(db *sql.DB, tableName, pkColumnName string, kv *bt.VersionedKV) {

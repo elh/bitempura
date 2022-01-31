@@ -144,6 +144,9 @@ func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.Write
 		if err != nil {
 			return err
 		}
+		if isDelete && len(overlappingVs) == 0 {
+			return bt.ErrNotFound
+		}
 
 		for _, overlappingV := range overlappingVs {
 			// NOTE(elh): playing fast and loose with just mutating versioned value by ptr
@@ -167,6 +170,8 @@ func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.Write
 				db.vKVs[key] = append(db.vKVs[key], overhangV)
 			}
 		}
+	} else if isDelete {
+		return bt.ErrNotFound
 	}
 
 	// add value for Set, add nothing for Delete

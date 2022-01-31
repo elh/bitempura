@@ -1,0 +1,22 @@
+{
+  "TestName": "TestDelete/existing_entry_-_no_valid_end:_error_if_end_valid_time_before_valid_time",
+  "Passed": true,
+  "Histories": {
+    "A": [
+      {
+        "Key": "A",
+        "Value": {
+          "balance": 0,
+          "deleted_at": null,
+          "is_active": false,
+          "type": "checking",
+          "updated_at": "2021-01-01T00:00:00Z"
+        },
+        "TxTimeStart": "2022-01-01T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ]
+  }
+}

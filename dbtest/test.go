@@ -967,11 +967,12 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 	}
 
 	type testCase struct {
-		desc      string
-		now       *time.Time // manually control transaction time clock
-		key       string
-		writeOpts []WriteOpt
-		expectErr bool
+		desc              string
+		now               *time.Time // manually control transaction time clock
+		key               string
+		writeOpts         []WriteOpt
+		expectErrNotFound bool
+		expectErr         bool
 		// verify writes by checking result of find as of configured valid time and tx time
 		findChecks []findCheck
 	}
@@ -987,14 +988,10 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 			},
 			testCases: []testCase{
 				{
-					desc: "delete with no match is nop",
-					now:  &t1,
-					key:  "A",
-					findChecks: []findCheck{
-						{
-							expectErrNotFound: true,
-						},
-					},
+					desc:              "delete with no match is nop",
+					now:               &t1,
+					key:               "A",
+					expectErrNotFound: true,
 				},
 			},
 		},
@@ -1267,7 +1264,11 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 					require.Nil(t, clock.SetNow(*tC.now))
 				}
 				err = db.Delete(tC.key, tC.writeOpts...)
-				if tC.expectErr {
+				if tC.expectErrNotFound {
+					require.ErrorIs(t, err, ErrNotFound)
+					return
+				} else if tC.expectErr {
+					require.NotErrorIs(t, err, ErrNotFound)
 					require.NotNil(t, err)
 					return
 				}
