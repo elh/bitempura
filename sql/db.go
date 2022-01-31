@@ -124,6 +124,9 @@ func (db *TableDB) Set(key string, value bt.Value, opts ...bt.WriteOpt) error {
 // WARNING: unimplemented
 func (db *TableDB) Delete(key string, opts ...bt.WriteOpt) error {
 	// select out the conflicting records based on the write opt times. update them and add new ones as needed
+	if db.deletedAtColName == nil {
+		return errors.New("Delete without configured DeleteAt column is unimplemented") // TODO: support this
+	}
 	return errors.New("unimplemented")
 }
 

@@ -38,6 +38,8 @@ var (
 		"updated_at": t2,
 		"deleted_at": nil,
 	}
+
+	verbose = false // if true, print from tests using println
 )
 
 func TestGet(t *testing.T) {
@@ -63,13 +65,13 @@ func TestList(t *testing.T) {
 }
 
 // func TestDelete(t *testing.T) {
-// 	dbtest.TestDelete(t, oldValue, newValue, func(kvs []*bt.VersionedKV, clock bt.Clock) (db bt.DB, closeFn func(), err error) {
+// 	dbtest.TestDelete(t, oldValue, newValue, func(kvs []*bt.VersionedKV, clock bt.Clock) (bt.DB, func(), error) {
 // 		sqlDB := setupTestDB(t)
 // 		for _, kv := range kvs {
 // 			mustInsertKV(sqlDB, "balances", "id", kv)
 // 		}
 // 		// TODO: control TX in clock...
-// 		db, err = NewTableDB(sqlDB, "balances", "id")
+// 		db, err := NewTableDB(sqlDB, "balances", "id", toStringPtr("updated_at"), toStringPtr("deleted_at"))
 // 		return db, closeDBFn(sqlDB), err
 // 	})
 // }
@@ -107,21 +109,21 @@ func TestQuery(t *testing.T) {
 		})
 	}
 
-	fmt.Println("alice: at t1, checking account has $100 in it and is active") // alice
+	println("alice: at t1, checking account has $100 in it and is active") // alice
 	insert("alice/balance", "checking", 100, true, t1, &t3, t1, nil)
-	fmt.Println("alice: at t3, balance updated to $200")
+	println("alice: at t3, balance updated to $200")
 	insert("alice/balance", "checking", 100, true, t3, nil, t1, &t3)
 	insert("alice/balance", "checking", 200, true, t3, nil, t3, nil)
-	fmt.Println("bob: at t1, savings account has $100 and is active") // bob
+	println("bob: at t1, savings account has $100 and is active") // bob
 	insert("bob/balance", "savings", 100, true, t1, &t2, t1, nil)
-	fmt.Println("bob: at t2, realize it was $200 the entire time")
+	println("bob: at t2, realize it was $200 the entire time")
 	insert("bob/balance", "savings", 300, true, t2, nil, t1, nil)
-	fmt.Println("carol: at t1, checking account has $0 and is inactive") // carol
+	println("carol: at t1, checking account has $0 and is inactive") // carol
 	insert("carol/balance", "checking", 0, false, t1, &t2, t1, nil)
-	fmt.Println("carol: at t2, add $100 and reactivate account")
+	println("carol: at t2, add $100 and reactivate account")
 	insert("carol/balance", "checking", 0, false, t2, &t3, t1, &t2)
 	insert("carol/balance", "checking", 100, true, t2, &t3, t2, nil)
-	fmt.Println("carol: at t3, oh no! realized it was re-actived at t2 but amount was wrong; it was $10. it's 100 now though")
+	println("carol: at t3, oh no! realized it was re-actived at t2 but amount was wrong; it was $10. it's 100 now though")
 	insert("carol/balance", "checking", 10, true, t3, nil, t1, &t3)
 	insert("carol/balance", "checking", 100, true, t3, nil, t3, nil)
 
@@ -229,7 +231,7 @@ func TestQuery(t *testing.T) {
 
 			out, err := ScanToMaps(rows)
 			require.Nil(t, err)
-			fmt.Println(toJSON(out))
+			println(toJSON(out))
 
 			// can't control
 			// TODO: decide if i want the base APIs to return versioning information at all
@@ -349,4 +351,10 @@ func toJSON(v interface{}) string {
 		panic(err)
 	}
 	return string(out)
+}
+
+func println(v ...interface{}) {
+	if verbose {
+		fmt.Println(v...)
+	}
 }
