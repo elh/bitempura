@@ -165,25 +165,35 @@ func (db *TableDB) Select(b squirrel.SelectBuilder, opts ...bt.ReadOpt) (*sql.Ro
 	// override FROM table
 	b = b.From(db.stateTable)
 	// add tx and valid time to query
-	b = b.Where(squirrel.LtOrEq{"__bt_tx_time_start": options.TxTime})
-	b = b.Where(squirrel.Or{squirrel.Eq{"__bt_tx_time_end": nil}, squirrel.Gt{"__bt_tx_time_end": options.TxTime}})
-	b = b.Where(squirrel.LtOrEq{"__bt_valid_time_start": options.ValidTime})
-	b = b.Where(squirrel.Or{squirrel.Eq{"__bt_valid_time_end": nil}, squirrel.Gt{"__bt_valid_time_end": options.ValidTime}})
+	b = b.Where(squirrel.LtOrEq{"__bt_tx_time_start": options.txTime})
+	b = b.Where(squirrel.Or{squirrel.Eq{"__bt_tx_time_end": nil}, squirrel.Gt{"__bt_tx_time_end": options.txTime}})
+	b = b.Where(squirrel.LtOrEq{"__bt_valid_time_start": options.validTime})
+	b = b.Where(squirrel.Or{squirrel.Eq{"__bt_valid_time_end": nil}, squirrel.Gt{"__bt_valid_time_end": options.validTime}})
 
 	return b.RunWith(db.eq).Query()
 }
 
-func (db *TableDB) handleReadOpts(opts []bt.ReadOpt) *bt.ReadOptions {
+type readConfig struct {
+	validTime time.Time
+	txTime    time.Time
+}
+
+func (db *TableDB) handleReadOpts(opts []bt.ReadOpt) *readConfig {
+	options := bt.ApplyReadOpts(opts)
+
 	now := time.Now()
-	options := &bt.ReadOptions{
-		ValidTime: now,
-		TxTime:    now,
+	config := &readConfig{
+		validTime: now,
+		txTime:    now,
 	}
-	for _, opt := range opts {
-		opt(options)
+	if options.ValidTime != nil {
+		config.validTime = *options.ValidTime
+	}
+	if options.TxTime != nil {
+		config.txTime = *options.TxTime
 	}
 
-	return options
+	return config
 }
 
 // ExecerQueryer can Exec or Query. Both sql.DB and sql.Tx satisfy this interface.

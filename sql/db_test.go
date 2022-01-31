@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -223,8 +224,9 @@ func TestQuery(t *testing.T) {
 		t.Run(tC.desc, func(t *testing.T) {
 			sqlStr, _, err := tC.s.ToSql()
 			require.Nil(t, err)
-			fmt.Printf("query: %s\n", sqlStr)
 
+			readOptions := bt.ApplyReadOpts(tC.readOps)
+			fmt.Printf("query: %s %s\n", sqlStr, readOptionsToString(readOptions))
 			rows, err := db.Select(tC.s, tC.readOps...)
 			require.Nil(t, err)
 			defer rows.Close()
@@ -245,6 +247,23 @@ func TestQuery(t *testing.T) {
 			assert.Equal(t, stripBTID(tC.expect), stripBTID(out))
 		})
 	}
+}
+
+func readOptionsToString(options *bt.ReadOptions) string {
+	if options == nil {
+		return ""
+	}
+	var parts []string
+	if options.ValidTime != nil {
+		parts = append(parts, fmt.Sprintf("AS OF VT=%s", options.ValidTime.Format(time.RFC3339)))
+	}
+	if options.TxTime != nil {
+		parts = append(parts, fmt.Sprintf("AS OF TT=%s", options.TxTime.Format(time.RFC3339)))
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("<<%s>>", strings.Join(parts, ", "))
 }
 
 // setupTestDB returns a SQLite database with a bitemporal stable table named __bt_balances_states seeded for tests.

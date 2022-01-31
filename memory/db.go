@@ -67,7 +67,7 @@ func WithClock(clock bt.Clock) DBOpt {
 
 // Get data by key (as of optional valid and transaction times).
 func (db *DB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) {
-	options := db.handleReadOpts(opts)
+	config := db.handleReadOpts(opts)
 
 	db.m.RLock()
 	defer db.m.RUnlock()
@@ -75,18 +75,18 @@ func (db *DB) Get(key string, opts ...bt.ReadOpt) (*bt.VersionedKV, error) {
 	if !ok {
 		return nil, bt.ErrNotFound
 	}
-	return db.findVersionByTime(vs, options.ValidTime, options.TxTime)
+	return db.findVersionByTime(vs, config.validTime, config.txTime)
 }
 
 // List all data (as of optional valid and transaction times).
 func (db *DB) List(opts ...bt.ReadOpt) ([]*bt.VersionedKV, error) {
-	options := db.handleReadOpts(opts)
+	config := db.handleReadOpts(opts)
 
 	var ret []*bt.VersionedKV
 	db.m.RLock()
 	defer db.m.RUnlock()
 	for _, vs := range db.vKVs {
-		v, err := db.findVersionByTime(vs, options.ValidTime, options.TxTime)
+		v, err := db.findVersionByTime(vs, config.validTime, config.txTime)
 		if errors.Is(err, bt.ErrNotFound) {
 			continue
 		} else if err != nil {
@@ -131,7 +131,7 @@ func (db *DB) History(key string) ([]*bt.VersionedKV, error) {
 // Common logic of Set and Delete. Handling of existing records and "overhand" is the same. If for Delete, do not create
 // new VersionedKV.
 func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.WriteOpt) error {
-	options, now, err := db.handleWriteOpts(opts)
+	writeConfig, now, err := db.handleWriteOpts(opts)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.Write
 	defer db.m.Unlock()
 	vs, ok := db.vKVs[key]
 	if ok {
-		overlappingVs, err := db.findOverlappingValidTimeVersions(vs, options.ValidTime, options.EndValidTime, now)
+		overlappingVs, err := db.findOverlappingValidTimeVersions(vs, writeConfig.validTime, writeConfig.endValidTime, now)
 		if err != nil {
 			return err
 		}
@@ -176,8 +176,8 @@ func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.Write
 			Value:          value,
 			TxTimeStart:    now,
 			TxTimeEnd:      nil,
-			ValidTimeStart: options.ValidTime,
-			ValidTimeEnd:   options.EndValidTime,
+			ValidTimeStart: writeConfig.validTime,
+			ValidTimeEnd:   writeConfig.endValidTime,
 		}
 		if err := newV.Validate(); err != nil {
 			return err
@@ -191,43 +191,62 @@ func (db *DB) update(key string, value bt.Value, isDelete bool, opts ...bt.Write
 	return nil
 }
 
-func (db *DB) handleWriteOpts(opts []bt.WriteOpt) (options *bt.WriteOptions, now time.Time, err error) {
+type writeConfig struct {
+	validTime    time.Time
+	endValidTime *time.Time
+}
+
+func (db *DB) handleWriteOpts(opts []bt.WriteOpt) (config *writeConfig, now time.Time, err error) {
+	options := bt.ApplyWriteOpts(opts)
+
 	now = db.clock.Now()
-	options = &bt.WriteOptions{
-		ValidTime:    now,
-		EndValidTime: nil,
+	config = &writeConfig{
+		validTime:    now,
+		endValidTime: nil,
 	}
-	for _, opt := range opts {
-		opt(options)
+	if options.ValidTime != nil {
+		config.validTime = *options.ValidTime
+	}
+	if options.EndValidTime != nil {
+		config.endValidTime = options.EndValidTime
 	}
 
 	// validate write option times. this is relevant for Delete even if Set is validated at resource level
-	if options.EndValidTime != nil && !options.EndValidTime.After(options.ValidTime) {
+	if config.endValidTime != nil && !config.endValidTime.After(config.validTime) {
 		return nil, time.Time{}, errors.New("valid time start must be before end")
 	}
-
 	// disallow valid times being set in the future
-	if options.ValidTime.After(now) {
+	if config.validTime.After(now) {
 		return nil, time.Time{}, errors.New("valid time start cannot be in the future")
 	}
-	if options.EndValidTime != nil && options.EndValidTime.After(now) {
+	if config.endValidTime != nil && config.endValidTime.After(now) {
 		return nil, time.Time{}, errors.New("valid time end cannot be in the future")
 	}
 
-	return options, now, nil
+	return config, now, nil
 }
 
-func (db *DB) handleReadOpts(opts []bt.ReadOpt) *bt.ReadOptions {
+type readConfig struct {
+	validTime time.Time
+	txTime    time.Time
+}
+
+func (db *DB) handleReadOpts(opts []bt.ReadOpt) *readConfig {
+	options := bt.ApplyReadOpts(opts)
+
 	now := db.clock.Now()
-	options := &bt.ReadOptions{
-		ValidTime: now,
-		TxTime:    now,
+	config := &readConfig{
+		validTime: now,
+		txTime:    now,
 	}
-	for _, opt := range opts {
-		opt(options)
+	if options.ValidTime != nil {
+		config.validTime = *options.ValidTime
+	}
+	if options.TxTime != nil {
+		config.txTime = *options.TxTime
 	}
 
-	return options
+	return config
 }
 
 // handle time properties

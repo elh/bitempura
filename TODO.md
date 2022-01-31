@@ -19,8 +19,8 @@
     - [x] SQL querying
     - [ ] support composite PKs, non-string PKs
 - [x] Exported DB test harness
+- [x] Exported ReadOpt and WriteOpt handling. Separate provided inputs from resulting options for logging + SQL queries.
 - [ ] ReadOpt's for History
-- [ ] Exported ReadOpt and WriteOpt handling. Separate provided inputs from resulting options for logging + SQL queries.
 - [ ] bitempur-ize existing SQL table
 - [ ] Visualizations. Interactive?
 - [ ] Performance/memory usage benchmarking
