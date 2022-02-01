@@ -2,6 +2,8 @@
 # It's just something I am curious about keeping an eye on since this has been nicely simple.
 
 dbtest/
+memory/_testoutput
+sql/_testoutput
 *_test.go
 
 *.md

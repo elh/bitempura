@@ -1,0 +1,18 @@
+[
+  {
+    "Key": "A",
+    "Value": "NEW",
+    "TxTimeStart": "2022-01-01T00:00:00Z",
+    "TxTimeEnd": null,
+    "ValidTimeStart": "2022-01-01T00:00:00Z",
+    "ValidTimeEnd": "2022-01-02T00:00:00Z"
+  },
+  {
+    "Key": "A",
+    "Value": "OLD",
+    "TxTimeStart": "2022-01-02T00:00:00Z",
+    "TxTimeEnd": "2022-01-03T00:00:00Z",
+    "ValidTimeStart": "2022-01-03T00:00:00Z",
+    "ValidTimeEnd": "2022-01-04T00:00:00Z"
+  }
+]
