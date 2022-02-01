@@ -36,3 +36,4 @@ Candidates
 - [ ] Consider Datomic accumulate and retract event style. Immutable storage layer?
 - [ ] Better test DB than sqlite? use cockroachdb/copyist?
     - [ ] directly control a test db's notion of "current timestamp"? the requirement for deleted_at leads to totally different trigger implementation on UPDATE event instead of DELETE event
+- [ ] Run CI tests with the `output-history` option on and enforcing no diffs?
