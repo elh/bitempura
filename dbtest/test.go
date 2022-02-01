@@ -2,7 +2,12 @@ package dbtest
 
 import (
 	"encoding/json"
+	"errors"
+	"flag"
 	"fmt"
+	"log"
+	"os"
+	"regexp"
 	"sort"
 	"testing"
 	"time"
@@ -11,6 +16,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var (
+	outputHistory bool
+	outputDir     string
+)
+
+func init() {
+	flag.BoolVar(&outputHistory, "output-history", false, "if true, output test result history to output dir")
+	flag.StringVar(&outputDir, "output-history-dir", "_testoutput/", "output dir")
+}
 
 var (
 	shortForm = "2006-01-02" // simple time format
@@ -35,6 +50,7 @@ func mustParseTime(layout, value string) time.Time {
 // TestGet tests the Get function. dbFn must return a DB under test with the VersionedKV's stored in the database and
 // a function to close the DB after the test is complete.
 func TestGet(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*VersionedKV) (db DB, closeFn func(), err error)) {
+	flag.Parse()
 	type fixtures struct {
 		name string
 		// make sure structs isolated between tests while doing in-mem mutations
@@ -295,6 +311,7 @@ func TestGet(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*VersionedK
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				db, closeFn, err := dbFn(s.fixtures.vKVs())
 				defer closeFn()
+				defer writeOutputHistory(db, "A", t.Name())
 				require.Nil(t, err)
 				ret, err := db.Get(tC.key, tC.readOpts...)
 				if tC.expectErrNotFound {
@@ -432,6 +449,7 @@ func TestList(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Versioned
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				db, closeFn, err := dbFn(s.fixtures.vKVs())
 				defer closeFn()
+				defer writeOutputHistory(db, "A", t.Name())
 				require.Nil(t, err)
 				ret, err := db.List(tC.readOpts...)
 				if tC.expectErr {
@@ -903,6 +921,7 @@ func TestSet(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, error
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				clock := &TestClock{}
 				db, err := dbFn(s.fixtures.vKVs(), clock)
+				defer writeOutputHistory(db, "A", t.Name())
 				require.Nil(t, err)
 				if tC.now != nil {
 					require.Nil(t, clock.SetNow(*tC.now))
@@ -1241,6 +1260,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 				clock := &TestClock{}
 				db, closeFn, err := dbFn(s.fixtures.vKVs(), clock)
 				defer closeFn()
+				defer writeOutputHistory(db, "A", t.Name())
 				require.Nil(t, err)
 				if tC.now != nil {
 					require.Nil(t, clock.SetNow(*tC.now))
@@ -1595,6 +1615,7 @@ func TestHistory(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Versio
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				db, closeFn, err := dbFn(s.fixtures.vKVs())
 				defer closeFn()
+				defer writeOutputHistory(db, "A", t.Name())
 				require.Nil(t, err)
 				ret, err := db.History(tC.key)
 				if tC.expectErrNotFound {
@@ -1619,11 +1640,37 @@ func sortKVsByKey(ds []*VersionedKV) []*VersionedKV {
 	return out
 }
 
-//nolint:unused,deadcode // debug
 func toJSON(v interface{}) string {
 	out, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		panic(err)
 	}
 	return string(out)
+}
+
+func writeOutputHistory(db DB, key, testName string) {
+	if !outputHistory {
+		return
+	}
+	// format test name for file friendliness
+	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
+	if err != nil {
+		log.Fatal(err)
+	}
+	testName = reg.ReplaceAllString(testName, "_")
+
+	kvs, err := db.History(key)
+	if errors.Is(err, ErrNotFound) {
+		kvs = []*VersionedKV{}
+	} else if err != nil {
+		fmt.Printf("failed to get output history for test=%v\n: %v", testName, err)
+		return
+	}
+	kvsJSON := toJSON(kvs)
+	_ = os.Mkdir(outputDir, 0777)
+	err = os.WriteFile(fmt.Sprintf("%s/%s.json", outputDir, testName), []byte(kvsJSON), 0644)
+	if err != nil {
+		fmt.Printf("failed to write output history for test=%v\n: %v", testName, err)
+		return
+	}
 }
