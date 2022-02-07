@@ -1,4 +1,6 @@
 {
   "TestName": "TestGet/empty_db:_not_found",
-  "History": []
+  "Histories": {
+    "A": []
+  }
 }

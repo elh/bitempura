@@ -1,13 +1,15 @@
 {
   "TestName": "TestList/A,_B_values:_not_found_-_as_of_transaction_time",
-  "History": [
-    {
-      "Key": "A",
-      "Value": "OLD",
-      "TxTimeStart": "2022-01-01T00:00:00Z",
-      "TxTimeEnd": null,
-      "ValidTimeStart": "2022-01-01T00:00:00Z",
-      "ValidTimeEnd": null
-    }
-  ]
+  "Histories": {
+    "A": [
+      {
+        "Key": "A",
+        "Value": "OLD",
+        "TxTimeStart": "2022-01-01T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ]
+  }
 }

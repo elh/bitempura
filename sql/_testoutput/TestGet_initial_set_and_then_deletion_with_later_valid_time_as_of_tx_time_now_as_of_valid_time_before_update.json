@@ -1,33 +1,35 @@
 {
   "TestName": "TestGet/initial_set,_and_then_deletion_with_later_valid_time:_as_of_tx_time_now,_as_of_valid_time_before_update",
-  "History": [
-    {
-      "Key": "A",
-      "Value": {
-        "balance": 0,
-        "deleted_at": null,
-        "is_active": false,
-        "type": "checking",
-        "updated_at": "2021-01-01T00:00:00Z"
+  "Histories": {
+    "A": [
+      {
+        "Key": "A",
+        "Value": {
+          "balance": 0,
+          "deleted_at": null,
+          "is_active": false,
+          "type": "checking",
+          "updated_at": "2021-01-01T00:00:00Z"
+        },
+        "TxTimeStart": "2022-01-03T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": "2022-01-03T00:00:00Z"
       },
-      "TxTimeStart": "2022-01-03T00:00:00Z",
-      "TxTimeEnd": null,
-      "ValidTimeStart": "2022-01-01T00:00:00Z",
-      "ValidTimeEnd": "2022-01-03T00:00:00Z"
-    },
-    {
-      "Key": "A",
-      "Value": {
-        "balance": 0,
-        "deleted_at": null,
-        "is_active": false,
-        "type": "checking",
-        "updated_at": "2021-01-01T00:00:00Z"
-      },
-      "TxTimeStart": "2022-01-01T00:00:00Z",
-      "TxTimeEnd": "2022-01-03T00:00:00Z",
-      "ValidTimeStart": "2022-01-01T00:00:00Z",
-      "ValidTimeEnd": null
-    }
-  ]
+      {
+        "Key": "A",
+        "Value": {
+          "balance": 0,
+          "deleted_at": null,
+          "is_active": false,
+          "type": "checking",
+          "updated_at": "2021-01-01T00:00:00Z"
+        },
+        "TxTimeStart": "2022-01-01T00:00:00Z",
+        "TxTimeEnd": "2022-01-03T00:00:00Z",
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ]
+  }
 }

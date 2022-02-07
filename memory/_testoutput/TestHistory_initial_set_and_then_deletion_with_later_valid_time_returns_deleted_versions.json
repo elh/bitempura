@@ -1,21 +1,23 @@
 {
   "TestName": "TestHistory/initial_set,_and_then_deletion_with_later_valid_time:_returns_\"deleted\"_versions",
-  "History": [
-    {
-      "Key": "A",
-      "Value": "OLD",
-      "TxTimeStart": "2022-01-03T00:00:00Z",
-      "TxTimeEnd": null,
-      "ValidTimeStart": "2022-01-01T00:00:00Z",
-      "ValidTimeEnd": "2022-01-03T00:00:00Z"
-    },
-    {
-      "Key": "A",
-      "Value": "OLD",
-      "TxTimeStart": "2022-01-01T00:00:00Z",
-      "TxTimeEnd": "2022-01-03T00:00:00Z",
-      "ValidTimeStart": "2022-01-01T00:00:00Z",
-      "ValidTimeEnd": null
-    }
-  ]
+  "Histories": {
+    "A": [
+      {
+        "Key": "A",
+        "Value": "OLD",
+        "TxTimeStart": "2022-01-03T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": "2022-01-03T00:00:00Z"
+      },
+      {
+        "Key": "A",
+        "Value": "OLD",
+        "TxTimeStart": "2022-01-01T00:00:00Z",
+        "TxTimeEnd": "2022-01-03T00:00:00Z",
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ]
+  }
 }

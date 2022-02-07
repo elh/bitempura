@@ -1,21 +1,23 @@
 {
   "TestName": "TestHistory/version_has_later_transaction_time_start,_but_earlier_transaction_time_end:_return_versions_by_descending_end_transaction_time,_descending_end_valid_time",
-  "History": [
-    {
-      "Key": "A",
-      "Value": "NEW",
-      "TxTimeStart": "2022-01-01T00:00:00Z",
-      "TxTimeEnd": null,
-      "ValidTimeStart": "2022-01-01T00:00:00Z",
-      "ValidTimeEnd": "2022-01-02T00:00:00Z"
-    },
-    {
-      "Key": "A",
-      "Value": "OLD",
-      "TxTimeStart": "2022-01-02T00:00:00Z",
-      "TxTimeEnd": "2022-01-03T00:00:00Z",
-      "ValidTimeStart": "2022-01-03T00:00:00Z",
-      "ValidTimeEnd": "2022-01-04T00:00:00Z"
-    }
-  ]
+  "Histories": {
+    "A": [
+      {
+        "Key": "A",
+        "Value": "NEW",
+        "TxTimeStart": "2022-01-01T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": "2022-01-02T00:00:00Z"
+      },
+      {
+        "Key": "A",
+        "Value": "OLD",
+        "TxTimeStart": "2022-01-02T00:00:00Z",
+        "TxTimeEnd": "2022-01-03T00:00:00Z",
+        "ValidTimeStart": "2022-01-03T00:00:00Z",
+        "ValidTimeEnd": "2022-01-04T00:00:00Z"
+      }
+    ]
+  }
 }
