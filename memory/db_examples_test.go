@@ -25,7 +25,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	db, err := memory.NewDB(memory.WithClock(clock))
 	require.Nil(t, err)
 	keys := []string{"p1", "p2", "p3", "p4", "p5", "p6", "p7"}
-	defer dbtest.WriteOutputHistory(db, keys, t.Name())
+	defer dbtest.WriteOutputHistory(t, db, keys, t.Name())
 
 	type Doc map[string]interface{}
 
@@ -310,7 +310,7 @@ func TestRobinhoodExample(t *testing.T) {
 	clock := &dbtest.TestClock{}
 	db, err := memory.NewDB(memory.WithClock(clock))
 	require.Nil(t, err)
-	defer dbtest.WriteOutputHistory(db, []string{"user-1"}, t.Name())
+	defer dbtest.WriteOutputHistory(t, db, []string{"user-1"}, t.Name())
 
 	type Balance map[string]interface{}
 

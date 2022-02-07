@@ -1,5 +1,6 @@
 {
   "TestName": "TestSet/empty_db:_can_set_value_of_nil",
+  "Passed": true,
   "Histories": {
     "A": [
       {

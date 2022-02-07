@@ -1,5 +1,6 @@
 {
   "TestName": "TestSet/empty_db:_basic_set_with_valid_time_and_end_valid_time",
+  "Passed": true,
   "Histories": {
     "A": [
       {

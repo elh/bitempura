@@ -311,7 +311,7 @@ func TestGet(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*VersionedK
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				db, closeFn, err := dbFn(s.fixtures.vKVs())
 				defer closeFn()
-				defer WriteOutputHistory(db, []string{"A"}, t.Name())
+				defer WriteOutputHistory(t, db, []string{"A"}, t.Name())
 				require.Nil(t, err)
 				ret, err := db.Get(tC.key, tC.readOpts...)
 				if tC.expectErrNotFound {
@@ -449,7 +449,7 @@ func TestList(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Versioned
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				db, closeFn, err := dbFn(s.fixtures.vKVs())
 				defer closeFn()
-				defer WriteOutputHistory(db, []string{"A"}, t.Name())
+				defer WriteOutputHistory(t, db, []string{"A"}, t.Name())
 				require.Nil(t, err)
 				ret, err := db.List(tC.readOpts...)
 				if tC.expectErr {
@@ -921,7 +921,7 @@ func TestSet(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, error
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				clock := &TestClock{}
 				db, err := dbFn(s.fixtures.vKVs(), clock)
-				defer WriteOutputHistory(db, []string{"A"}, t.Name())
+				defer WriteOutputHistory(t, db, []string{"A"}, t.Name())
 				require.Nil(t, err)
 				if tC.now != nil {
 					require.Nil(t, clock.SetNow(*tC.now))
@@ -1260,7 +1260,7 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 				clock := &TestClock{}
 				db, closeFn, err := dbFn(s.fixtures.vKVs(), clock)
 				defer closeFn()
-				defer WriteOutputHistory(db, []string{"A"}, t.Name())
+				defer WriteOutputHistory(t, db, []string{"A"}, t.Name())
 				require.Nil(t, err)
 				if tC.now != nil {
 					require.Nil(t, clock.SetNow(*tC.now))
@@ -1615,7 +1615,7 @@ func TestHistory(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Versio
 			t.Run(fmt.Sprintf("%v: %v", s.fixtures.name, tC.desc), func(t *testing.T) {
 				db, closeFn, err := dbFn(s.fixtures.vKVs())
 				defer closeFn()
-				defer WriteOutputHistory(db, []string{"A"}, t.Name())
+				defer WriteOutputHistory(t, db, []string{"A"}, t.Name())
 				require.Nil(t, err)
 				ret, err := db.History(tC.key)
 				if tC.expectErrNotFound {
@@ -1651,12 +1651,13 @@ func toJSON(v interface{}) string {
 // TestOutput is the format for saving test data for debugging and visualization.
 type TestOutput struct {
 	TestName  string
+	Passed    bool                      // true is test passed
 	Histories map[string][]*VersionedKV // key -> history
 }
 
 // WriteOutputHistory writes to a file the final "history" for specified keys at the end of a test. This is used for
 // debugging and visualization.
-func WriteOutputHistory(db DB, keys []string, testName string) {
+func WriteOutputHistory(t *testing.T, db DB, keys []string, testName string) {
 	if !outputHistory {
 		return
 	}
@@ -1674,6 +1675,7 @@ func WriteOutputHistory(db DB, keys []string, testName string) {
 	}
 	o := TestOutput{
 		TestName:  testName,
+		Passed:    !t.Failed(),
 		Histories: histories,
 	}
 	kvsJSON := toJSON(o)

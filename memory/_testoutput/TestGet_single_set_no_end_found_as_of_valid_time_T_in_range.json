@@ -1,5 +1,6 @@
 {
   "TestName": "TestGet/single_set,_no_end:_found_-_as_of_valid_time_T_in_range",
+  "Passed": true,
   "Histories": {
     "A": [
       {

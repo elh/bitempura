@@ -1,5 +1,6 @@
 {
   "TestName": "TestDelete/existing_entry_-_no_valid_end:_error_if_end_valid_time_equal_to_valid_time",
+  "Passed": true,
   "Histories": {
     "A": [
       {

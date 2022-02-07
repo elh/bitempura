@@ -1,5 +1,6 @@
 {
   "TestName": "TestHistory/initial_set,_and_then_set_with_later_valid_time:_return_versions_by_descending_end_transaction_time,_descending_end_valid_time",
+  "Passed": true,
   "Histories": {
     "A": [
       {

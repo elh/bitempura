@@ -1,5 +1,6 @@
 {
   "TestName": "TestSet/existing_entry_-_no_valid_end:_set_w/_valid_time_end._no_overhang",
+  "Passed": true,
   "Histories": {
     "A": [
       {

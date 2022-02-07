@@ -1,5 +1,6 @@
 {
   "TestName": "TestGet/initial_set,_and_then_set_with_later_valid_time:_as_of_tx_time_before_update,_as_of_valid_time_now",
+  "Passed": true,
   "Histories": {
     "A": [
       {

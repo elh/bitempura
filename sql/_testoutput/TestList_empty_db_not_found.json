@@ -1,5 +1,6 @@
 {
   "TestName": "TestList/empty_db:_not_found",
+  "Passed": true,
   "Histories": {
     "A": []
   }
