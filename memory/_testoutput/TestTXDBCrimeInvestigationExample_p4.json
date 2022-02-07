@@ -1,0 +1,65 @@
+{
+  "TestName": "TestTXDBCrimeInvestigationExample/p4",
+  "History": [
+    {
+      "Key": "p4",
+      "Value": {
+        "arrival-time": "2019-01-08T00:00:00Z",
+        "departure-time": null,
+        "entry-pt": "LA"
+      },
+      "TxTimeStart": "2019-01-08T00:00:00Z",
+      "TxTimeEnd": null,
+      "ValidTimeStart": "2019-01-08T00:00:00Z",
+      "ValidTimeEnd": null
+    },
+    {
+      "Key": "p4",
+      "Value": {
+        "arrival-time": "2019-01-02T00:00:00Z",
+        "departure-time": "2019-01-03T00:00:00Z",
+        "entry-pt": "NY"
+      },
+      "TxTimeStart": "2019-01-08T00:00:00Z",
+      "TxTimeEnd": null,
+      "ValidTimeStart": "2019-01-03T00:00:00Z",
+      "ValidTimeEnd": "2019-01-08T00:00:00Z"
+    },
+    {
+      "Key": "p4",
+      "Value": {
+        "arrival-time": "2019-01-02T00:00:00Z",
+        "departure-time": "2019-01-03T00:00:00Z",
+        "entry-pt": "NY"
+      },
+      "TxTimeStart": "2019-01-03T00:00:00Z",
+      "TxTimeEnd": "2019-01-08T00:00:00Z",
+      "ValidTimeStart": "2019-01-03T00:00:00Z",
+      "ValidTimeEnd": null
+    },
+    {
+      "Key": "p4",
+      "Value": {
+        "arrival-time": "2019-01-02T00:00:00Z",
+        "departure-time": null,
+        "entry-pt": "NY"
+      },
+      "TxTimeStart": "2019-01-03T00:00:00Z",
+      "TxTimeEnd": null,
+      "ValidTimeStart": "2019-01-02T00:00:00Z",
+      "ValidTimeEnd": "2019-01-03T00:00:00Z"
+    },
+    {
+      "Key": "p4",
+      "Value": {
+        "arrival-time": "2019-01-02T00:00:00Z",
+        "departure-time": null,
+        "entry-pt": "NY"
+      },
+      "TxTimeStart": "2019-01-02T00:00:00Z",
+      "TxTimeEnd": "2019-01-03T00:00:00Z",
+      "ValidTimeStart": "2019-01-02T00:00:00Z",
+      "ValidTimeEnd": null
+    }
+  ]
+}

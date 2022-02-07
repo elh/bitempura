@@ -1,0 +1,17 @@
+{
+  "TestName": "TestTXDBCrimeInvestigationExample/p7",
+  "History": [
+    {
+      "Key": "p7",
+      "Value": {
+        "arrival-time": "2019-01-11T00:00:00Z",
+        "departure-time": null,
+        "entry-pt": "NY"
+      },
+      "TxTimeStart": "2019-01-11T00:00:00Z",
+      "TxTimeEnd": null,
+      "ValidTimeStart": "2019-01-11T00:00:00Z",
+      "ValidTimeEnd": null
+    }
+  ]
+}

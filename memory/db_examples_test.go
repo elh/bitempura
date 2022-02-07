@@ -1,6 +1,7 @@
 package memory_test
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 
@@ -24,6 +25,13 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	clock := &dbtest.TestClock{}
 	db, err := memory.NewDB(memory.WithClock(clock))
 	require.Nil(t, err)
+	defer dbtest.WriteOutputHistory(db, "p1", fmt.Sprintf("%v/%v", t.Name(), "p1"))
+	defer dbtest.WriteOutputHistory(db, "p2", fmt.Sprintf("%v/%v", t.Name(), "p2"))
+	defer dbtest.WriteOutputHistory(db, "p3", fmt.Sprintf("%v/%v", t.Name(), "p3"))
+	defer dbtest.WriteOutputHistory(db, "p4", fmt.Sprintf("%v/%v", t.Name(), "p4"))
+	defer dbtest.WriteOutputHistory(db, "p5", fmt.Sprintf("%v/%v", t.Name(), "p5"))
+	defer dbtest.WriteOutputHistory(db, "p6", fmt.Sprintf("%v/%v", t.Name(), "p6"))
+	defer dbtest.WriteOutputHistory(db, "p7", fmt.Sprintf("%v/%v", t.Name(), "p7"))
 
 	type Doc map[string]interface{}
 
@@ -308,6 +316,7 @@ func TestRobinhoodExample(t *testing.T) {
 	clock := &dbtest.TestClock{}
 	db, err := memory.NewDB(memory.WithClock(clock))
 	require.Nil(t, err)
+	defer dbtest.WriteOutputHistory(db, "user-1", t.Name())
 
 	type Balance map[string]interface{}
 

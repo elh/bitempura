@@ -1,0 +1,41 @@
+{
+  "TestName": "TestTXDBCrimeInvestigationExample/p2",
+  "History": [
+    {
+      "Key": "p2",
+      "Value": {
+        "arrival-time": "2018-12-31T00:00:00Z",
+        "departure-time": "2019-01-05T00:00:00Z",
+        "entry-pt": "SFO"
+      },
+      "TxTimeStart": "2019-01-05T00:00:00Z",
+      "TxTimeEnd": null,
+      "ValidTimeStart": "2019-01-05T00:00:00Z",
+      "ValidTimeEnd": null
+    },
+    {
+      "Key": "p2",
+      "Value": {
+        "arrival-time": "2018-12-31T00:00:00Z",
+        "departure-time": null,
+        "entry-pt": "SFO"
+      },
+      "TxTimeStart": "2019-01-05T00:00:00Z",
+      "TxTimeEnd": null,
+      "ValidTimeStart": "2018-12-31T00:00:00Z",
+      "ValidTimeEnd": "2019-01-05T00:00:00Z"
+    },
+    {
+      "Key": "p2",
+      "Value": {
+        "arrival-time": "2018-12-31T00:00:00Z",
+        "departure-time": null,
+        "entry-pt": "SFO"
+      },
+      "TxTimeStart": "2018-12-31T00:00:00Z",
+      "TxTimeEnd": "2019-01-05T00:00:00Z",
+      "ValidTimeStart": "2018-12-31T00:00:00Z",
+      "ValidTimeEnd": null
+    }
+  ]
+}
