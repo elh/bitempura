@@ -1,10 +1,13 @@
-[
-  {
-    "Key": "A",
-    "Value": "Old",
-    "TxTimeStart": "2022-01-02T00:00:00Z",
-    "TxTimeEnd": null,
-    "ValidTimeStart": "2021-12-31T00:00:00Z",
-    "ValidTimeEnd": "2022-01-01T00:00:00Z"
-  }
-]
+{
+  "TestName": "TestSet/empty_db:_basic_set_with_valid_time_and_end_valid_time",
+  "History": [
+    {
+      "Key": "A",
+      "Value": "Old",
+      "TxTimeStart": "2022-01-02T00:00:00Z",
+      "TxTimeEnd": null,
+      "ValidTimeStart": "2021-12-31T00:00:00Z",
+      "ValidTimeEnd": "2022-01-01T00:00:00Z"
+    }
+  ]
+}

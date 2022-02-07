@@ -1,1 +1,4 @@
-[]
+{
+  "TestName": "TestDelete/empty_db:_delete_with_no_match_is_nop",
+  "History": []
+}

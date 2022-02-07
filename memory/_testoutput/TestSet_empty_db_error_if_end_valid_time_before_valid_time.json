@@ -1,1 +1,4 @@
-[]
+{
+  "TestName": "TestSet/empty_db:_error_if_end_valid_time_before_valid_time",
+  "History": []
+}

@@ -1,26 +1,29 @@
-[
-  {
-    "Key": "A",
-    "Value": "NEW",
-    "TxTimeStart": "2022-01-03T00:00:00Z",
-    "TxTimeEnd": null,
-    "ValidTimeStart": "2022-01-03T00:00:00Z",
-    "ValidTimeEnd": null
-  },
-  {
-    "Key": "A",
-    "Value": "OLD",
-    "TxTimeStart": "2022-01-03T00:00:00Z",
-    "TxTimeEnd": null,
-    "ValidTimeStart": "2022-01-01T00:00:00Z",
-    "ValidTimeEnd": "2022-01-03T00:00:00Z"
-  },
-  {
-    "Key": "A",
-    "Value": "OLD",
-    "TxTimeStart": "2022-01-01T00:00:00Z",
-    "TxTimeEnd": "2022-01-03T00:00:00Z",
-    "ValidTimeStart": "2022-01-01T00:00:00Z",
-    "ValidTimeEnd": null
-  }
-]
+{
+  "TestName": "TestGet/initial_set,_and_then_set_with_later_valid_time:_as_of_tx_time_before_update,_as_of_valid_time_now",
+  "History": [
+    {
+      "Key": "A",
+      "Value": "NEW",
+      "TxTimeStart": "2022-01-03T00:00:00Z",
+      "TxTimeEnd": null,
+      "ValidTimeStart": "2022-01-03T00:00:00Z",
+      "ValidTimeEnd": null
+    },
+    {
+      "Key": "A",
+      "Value": "OLD",
+      "TxTimeStart": "2022-01-03T00:00:00Z",
+      "TxTimeEnd": null,
+      "ValidTimeStart": "2022-01-01T00:00:00Z",
+      "ValidTimeEnd": "2022-01-03T00:00:00Z"
+    },
+    {
+      "Key": "A",
+      "Value": "OLD",
+      "TxTimeStart": "2022-01-01T00:00:00Z",
+      "TxTimeEnd": "2022-01-03T00:00:00Z",
+      "ValidTimeStart": "2022-01-01T00:00:00Z",
+      "ValidTimeEnd": null
+    }
+  ]
+}

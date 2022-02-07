@@ -1,10 +1,13 @@
-[
-  {
-    "Key": "A",
-    "Value": "OLD",
-    "TxTimeStart": "2022-01-01T00:00:00Z",
-    "TxTimeEnd": null,
-    "ValidTimeStart": "2022-01-01T00:00:00Z",
-    "ValidTimeEnd": null
-  }
-]
+{
+  "TestName": "TestList/A,_B_values:_found_-_default_as_of_times",
+  "History": [
+    {
+      "Key": "A",
+      "Value": "OLD",
+      "TxTimeStart": "2022-01-01T00:00:00Z",
+      "TxTimeEnd": null,
+      "ValidTimeStart": "2022-01-01T00:00:00Z",
+      "ValidTimeEnd": null
+    }
+  ]
+}
