@@ -1,16 +1,21 @@
-[
-  {
-    "Key": "A",
-    "Value": {
-      "balance": 0,
-      "deleted_at": null,
-      "is_active": false,
-      "type": "checking",
-      "updated_at": "2021-01-01T00:00:00Z"
-    },
-    "TxTimeStart": "2022-01-01T00:00:00Z",
-    "TxTimeEnd": null,
-    "ValidTimeStart": "2022-01-01T00:00:00Z",
-    "ValidTimeEnd": null
+{
+  "TestName": "TestList/A,_B_values:_found_-_as_of_valid_time",
+  "Histories": {
+    "A": [
+      {
+        "Key": "A",
+        "Value": {
+          "balance": 0,
+          "deleted_at": null,
+          "is_active": false,
+          "type": "checking",
+          "updated_at": "2021-01-01T00:00:00Z"
+        },
+        "TxTimeStart": "2022-01-01T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ]
   }
-]
+}

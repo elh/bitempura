@@ -1,0 +1,51 @@
+{
+  "TestName": "TestRobinhoodExample",
+  "Histories": {
+    "user-1": [
+      {
+        "Key": "user-1",
+        "Value": {
+          "cash-balance": 90,
+          "description": "Price Improvement"
+        },
+        "TxTimeStart": "2021-03-21T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2021-03-20T00:00:00Z",
+        "ValidTimeEnd": null
+      },
+      {
+        "Key": "user-1",
+        "Value": {
+          "cash-balance": 75,
+          "description": "Stock Purchase"
+        },
+        "TxTimeStart": "2021-03-20T00:00:00Z",
+        "TxTimeEnd": "2021-03-21T00:00:00Z",
+        "ValidTimeStart": "2021-03-20T00:00:00Z",
+        "ValidTimeEnd": null
+      },
+      {
+        "Key": "user-1",
+        "Value": {
+          "cash-balance": 100,
+          "description": "Deposit"
+        },
+        "TxTimeStart": "2021-03-20T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2021-03-14T00:00:00Z",
+        "ValidTimeEnd": "2021-03-20T00:00:00Z"
+      },
+      {
+        "Key": "user-1",
+        "Value": {
+          "cash-balance": 100,
+          "description": "Deposit"
+        },
+        "TxTimeStart": "2021-03-14T00:00:00Z",
+        "TxTimeEnd": "2021-03-20T00:00:00Z",
+        "ValidTimeStart": "2021-03-14T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ]
+  }
+}

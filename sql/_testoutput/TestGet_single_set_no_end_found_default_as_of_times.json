@@ -1,16 +1,21 @@
-[
-  {
-    "Key": "A",
-    "Value": {
-      "balance": 0,
-      "deleted_at": null,
-      "is_active": false,
-      "type": "checking",
-      "updated_at": "2021-01-01T00:00:00Z"
-    },
-    "TxTimeStart": "2022-01-01T00:00:00Z",
-    "TxTimeEnd": null,
-    "ValidTimeStart": "2022-01-01T00:00:00Z",
-    "ValidTimeEnd": null
+{
+  "TestName": "TestGet/single_set,_no_end:_found_-_default_as_of_times",
+  "Histories": {
+    "A": [
+      {
+        "Key": "A",
+        "Value": {
+          "balance": 0,
+          "deleted_at": null,
+          "is_active": false,
+          "type": "checking",
+          "updated_at": "2021-01-01T00:00:00Z"
+        },
+        "TxTimeStart": "2022-01-01T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ]
   }
-]
+}

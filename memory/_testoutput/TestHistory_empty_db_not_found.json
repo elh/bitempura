@@ -1,1 +1,6 @@
-[]
+{
+  "TestName": "TestHistory/empty_db:_not_found",
+  "Histories": {
+    "A": []
+  }
+}

@@ -1,10 +1,15 @@
-[
-  {
-    "Key": "A",
-    "Value": "OLD",
-    "TxTimeStart": "2022-01-01T00:00:00Z",
-    "TxTimeEnd": null,
-    "ValidTimeStart": "2022-01-01T00:00:00Z",
-    "ValidTimeEnd": null
+{
+  "TestName": "TestGet/single_set,_no_end:_found_-_as_of_tx_time_T_in_range_(inclusive)",
+  "Histories": {
+    "A": [
+      {
+        "Key": "A",
+        "Value": "OLD",
+        "TxTimeStart": "2022-01-01T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ]
   }
-]
+}

@@ -1,10 +1,15 @@
-[
-  {
-    "Key": "A",
-    "Value": "OLD",
-    "TxTimeStart": "2022-01-01T00:00:00Z",
-    "TxTimeEnd": null,
-    "ValidTimeStart": "2022-01-01T00:00:00Z",
-    "ValidTimeEnd": null
+{
+  "TestName": "TestDelete/existing_entry_-_no_valid_end:_error_if_end_valid_time_equal_to_valid_time",
+  "Histories": {
+    "A": [
+      {
+        "Key": "A",
+        "Value": "OLD",
+        "TxTimeStart": "2022-01-01T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ]
   }
-]
+}
