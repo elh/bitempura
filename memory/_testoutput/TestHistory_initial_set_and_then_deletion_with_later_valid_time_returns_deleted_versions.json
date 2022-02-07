@@ -1,5 +1,6 @@
 {
   "TestName": "TestHistory/initial_set,_and_then_deletion_with_later_valid_time:_returns_\"deleted\"_versions",
+  "Passed": true,
   "Histories": {
     "A": [
       {

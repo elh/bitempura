@@ -1,5 +1,6 @@
 {
   "TestName": "TestHistory/single_set,_no_end:_basic_-_return_1_version",
+  "Passed": true,
   "Histories": {
     "A": [
       {

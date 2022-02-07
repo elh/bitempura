@@ -1,5 +1,6 @@
 {
   "TestName": "TestDelete/existing_entry_-_no_valid_end:_basic_delete",
+  "Passed": true,
   "Histories": {
     "A": [
       {

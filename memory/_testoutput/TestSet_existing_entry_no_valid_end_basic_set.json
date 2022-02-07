@@ -1,5 +1,6 @@
 {
   "TestName": "TestSet/existing_entry_-_no_valid_end:_basic_set",
+  "Passed": true,
   "Histories": {
     "A": [
       {

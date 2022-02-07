@@ -1,5 +1,6 @@
 {
   "TestName": "TestSet/empty_db:_error_if_key_not_set",
+  "Passed": true,
   "Histories": {
     "A": []
   }

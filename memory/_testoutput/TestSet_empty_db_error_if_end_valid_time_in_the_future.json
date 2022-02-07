@@ -1,5 +1,6 @@
 {
   "TestName": "TestSet/empty_db:_error_if_end_valid_time_in_the_future",
+  "Passed": true,
   "Histories": {
     "A": []
   }

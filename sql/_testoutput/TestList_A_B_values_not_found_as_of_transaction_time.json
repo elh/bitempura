@@ -1,5 +1,6 @@
 {
   "TestName": "TestList/A,_B_values:_not_found_-_as_of_transaction_time",
+  "Passed": true,
   "Histories": {
     "A": [
       {
