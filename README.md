@@ -5,7 +5,11 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/elh/bitempura)](https://goreportcard.com/report/github.com/elh/bitempura)
 [![Go Non-Test Lines Of Code](https://tokei.rs/b1/github/elh/bitempura?category=code)](https://github.com/elh/bitempura/blob/main/.tokeignore) <sup><sup>*non-test</sup></sup>
 
-**Bitempura.DB is a simple, [in-memory](https://github.com/elh/bitempura/blob/main/memory/db.go), [bitemporal](https://en.wikipedia.org/wiki/Bitemporal_Modeling) key-value database.**
+**Bitempura.DB is a simple, [bitemporal](https://en.wikipedia.org/wiki/Bitemporal_Modeling) key-value database.**
+
+Bitempura provides an in-memory, concurrency-safe [reference implementation](https://github.com/elh/bitempura/blob/main/memory/db.go). Users may leverage temporal visualization and debugging with [bitempura-viz 🔮](https://github.com/elh/bitempura-viz).
+
+🛠️: An experimental SQL-backed, [SQL-querying implementation](https://github.com/elh/bitempura/blob/main/sql/db.go) is WIP.
 
 <br />
 
