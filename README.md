@@ -1,4 +1,4 @@
-# bitempura ⌛... ⏳!
+# bitempura ⌛ → ⏳!
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/elh/bitempura.svg)](https://pkg.go.dev/github.com/elh/bitempura)
 [![Build Status](https://github.com/elh/bitempura/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/elh/bitempura/actions/workflows/go.yml?query=branch%3Amain)
@@ -12,7 +12,7 @@ Bitempura provides an in-memory, concurrency-safe [reference implementation](htt
 * Visualize and debug the 2D valid time and transaction time history with [bitempura-viz 🔮](https://github.com/elh/bitempura-viz).
 * Run on the web with compilation to [WebAssembly 🧩](https://github.com/elh/bitempura/blob/main/memory/wasm).
 
-An experimental SQL-backed, [SQL-querying implementation](https://github.com/elh/bitempura/blob/main/sql/db.go) is WIP 🛠️.
+An experimental, [SQL-backed, SQL-querying implementation](https://github.com/elh/bitempura/blob/main/sql/db.go) is WIP 🛠️.
 
 <br />
 
