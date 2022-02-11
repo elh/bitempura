@@ -60,7 +60,7 @@ func get(inputs []js.Value) (interface{}, error) {
 	var asOfValidTime, asOfTransactionTime *time.Time
 	{
 		if len(inputs) < 1 {
-			return nil, fmt.Errorf("at least 1 argument required: key, [as_of_valid_time, as_of_transaction_time]")
+			return nil, fmt.Errorf("key is required")
 		}
 		if inputs[0].Type() != js.TypeString {
 			return nil, fmt.Errorf("key must be type string")
@@ -97,7 +97,7 @@ func get(inputs []js.Value) (interface{}, error) {
 	}
 	got, err := db.Get(key, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get key: %v\n", err)
+		return nil, fmt.Errorf("failed to get: %v\n", err)
 	}
 	res, err := kvToMap(got)
 	if err != nil {
@@ -148,7 +148,7 @@ func list(inputs []js.Value) (interface{}, error) {
 	}
 	got, err := db.List(opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list key: %v\n", err)
+		return nil, fmt.Errorf("failed to list: %v\n", err)
 	}
 	res, err := kvsToSlice(got)
 	if err != nil {
@@ -170,9 +170,36 @@ func Delete(this js.Value, inputs []js.Value) interface{} {
 }
 
 // History is the wasm adapter for DB.History
+// arguments: key: string
 func History(this js.Value, inputs []js.Value) interface{} {
-	fmt.Println("unimplemented")
-	return nil
+	res, err := history(inputs)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
+	return res
+}
+
+func history(inputs []js.Value) (interface{}, error) {
+	var key string
+	{
+		if len(inputs) < 1 {
+			return nil, fmt.Errorf("key is required")
+		}
+		if inputs[0].Type() != js.TypeString {
+			return nil, fmt.Errorf("key must be type string")
+		}
+		key = inputs[0].String()
+	}
+
+	got, err := db.History(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get history: %v\n", err)
+	}
+	res, err := kvsToSlice(got)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert kvs: %v\n", err)
+	}
+	return res, nil
 }
 
 // SetNow is the wasm adapter for dbtest.TestClock.SetNow
