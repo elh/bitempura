@@ -224,8 +224,59 @@ func set(inputs []js.Value) error {
 }
 
 // Delete is the wasm adapter for DB.Delete
+// arguments: key: string, [with_valid_time: datetime (as RFC 3339 string), with_end_valid)time: datetime (as RFC 3339 string)]
 func Delete(this js.Value, inputs []js.Value) interface{} {
-	fmt.Println("unimplemented")
+	err := delete(inputs)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
+	return nil
+}
+
+func delete(inputs []js.Value) error {
+	var key string
+	var withValidTime, withEndValidTime *time.Time
+	{
+		if len(inputs) < 1 {
+			return fmt.Errorf("key is required")
+		}
+		if inputs[0].Type() != js.TypeString {
+			return fmt.Errorf("key must be type string")
+		}
+		key = inputs[0].String()
+	}
+	if len(inputs) > 1 && inputs[1].Type() != js.TypeNull && inputs[1].Type() != js.TypeUndefined {
+		if inputs[1].Type() != js.TypeString {
+			return fmt.Errorf("with_valid_time must be type string (or null or undefined)")
+		}
+		t, err := time.Parse(time.RFC3339, inputs[1].String())
+		if err != nil {
+			return fmt.Errorf("failed to parse with_valid_time: %v\n", err)
+		}
+		withValidTime = &t
+	}
+	if len(inputs) > 2 && inputs[2].Type() != js.TypeNull && inputs[2].Type() != js.TypeUndefined {
+		if inputs[2].Type() != js.TypeString {
+			return fmt.Errorf("with_end_valid must be type string (or null or undefined)")
+		}
+		t, err := time.Parse(time.RFC3339, inputs[2].String())
+		if err != nil {
+			return fmt.Errorf("failed to parse with_end_valid: %v\n", err)
+		}
+		withEndValidTime = &t
+	}
+
+	var opts []bt.WriteOpt
+	if withValidTime != nil {
+		opts = append(opts, bt.WithValidTime(*withValidTime))
+	}
+	if withEndValidTime != nil {
+		opts = append(opts, bt.WithEndValidTime(*withEndValidTime))
+	}
+	err := db.Delete(key, opts...)
+	if err != nil {
+		return fmt.Errorf("failed to delete: %v\n", err)
+	}
 	return nil
 }
 
