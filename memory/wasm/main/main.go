@@ -9,8 +9,8 @@ import (
 	"github.com/elh/bitempura/memory/wasm"
 )
 
-// all functions are exports with the "bt_" prefix. the working model for the wasm file is that there is one global
-// memory.DB local in the JavaScript environment
+// All functions are exported with the "bt_" prefix.
+// The working model for execution in Wasm is that there is one global memory.DB.
 func main() {
 	c := make(chan struct{})
 	js.Global().Set("bt_Get", js.FuncOf(wasm.Get))

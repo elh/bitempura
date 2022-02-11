@@ -15,7 +15,6 @@ import (
 	"github.com/elh/bitempura/memory"
 )
 
-// the working model for the wasm file is that there is one global memory.DB
 var clock *dbtest.TestClock
 var db bitempura.DB
 
@@ -37,7 +36,7 @@ func init() {
 }
 
 // Get is the wasm adapter for DB.Get.
-// arguments: key: string, [as_of_valid_time: datetime (as RFC 3339 string), as_of_transaction_time: datetime (as RFC 3339 string)]
+// arguments = key: string, [as_of_valid_time: string (RFC 3339 datetime), as_of_transaction_time: string (RFC 3339 datetime)]
 func Get(this js.Value, inputs []js.Value) interface{} {
 	res, err := get(inputs)
 	if err != nil {
@@ -97,8 +96,8 @@ func get(inputs []js.Value) (interface{}, error) {
 	return res, nil
 }
 
-// List is the wasm adapter for DB.List
-// arguments: [as_of_valid_time: datetime (as RFC 3339 string), as_of_transaction_time: datetime (as RFC 3339 string)]
+// List is the wasm adapter for DB.List.
+// arguments = [as_of_valid_time: string (RFC 3339 datetime), as_of_transaction_time: string (RFC 3339 datetime)]
 func List(this js.Value, inputs []js.Value) interface{} {
 	res, err := list(inputs)
 	if err != nil {
@@ -148,8 +147,8 @@ func list(inputs []js.Value) (interface{}, error) {
 	return res, nil
 }
 
-// Set is the wasm adapter for DB.Set
-// arguments: key: string, value: string (JSON string), [with_valid_time: datetime (as RFC 3339 string), with_end_valid_time: datetime (as RFC 3339 string)]
+// Set is the wasm adapter for DB.Set.
+// arguments = key: string, value: string (JSON string), [with_valid_time: string (RFC 3339 datetime), with_end_valid_time: string (RFC 3339 datetime)]
 func Set(this js.Value, inputs []js.Value) interface{} {
 	err := set(inputs)
 	if err != nil {
@@ -214,8 +213,8 @@ func set(inputs []js.Value) error {
 	return nil
 }
 
-// Delete is the wasm adapter for DB.Delete
-// arguments: key: string, [with_valid_time: datetime (as RFC 3339 string), with_end_valid_time: datetime (as RFC 3339 string)]
+// Delete is the wasm adapter for DB.Delete.
+// arguments = key: string, [with_valid_time: string (RFC 3339 datetime), with_end_valid_time: string (RFC 3339 datetime)]
 func Delete(this js.Value, inputs []js.Value) interface{} {
 	err := delete(inputs)
 	if err != nil {
@@ -271,8 +270,8 @@ func delete(inputs []js.Value) error {
 	return nil
 }
 
-// History is the wasm adapter for DB.History
-// arguments: key: string
+// History is the wasm adapter for DB.History.
+// arguments = key: string
 func History(this js.Value, inputs []js.Value) interface{} {
 	res, err := history(inputs)
 	if err != nil {
@@ -304,8 +303,8 @@ func history(inputs []js.Value) (interface{}, error) {
 	return res, nil
 }
 
-// SetNow is the wasm adapter for dbtest.TestClock.SetNow
-// arguments: now: datetime (as RFC 3339 string)
+// SetNow is the wasm adapter for dbtest.TestClock.SetNow.
+// arguments = now: string (RFC 3339 datetime)
 func SetNow(this js.Value, inputs []js.Value) interface{} {
 	err := setNow(inputs)
 	if err != nil {
