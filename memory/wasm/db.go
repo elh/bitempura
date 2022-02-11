@@ -158,7 +158,7 @@ func list(inputs []js.Value) (interface{}, error) {
 }
 
 // Set is the wasm adapter for DB.Set
-// arguments: key: string, value: string (JSON string), [with_valid_time: datetime (as RFC 3339 string), with_end_valid)time: datetime (as RFC 3339 string)]
+// arguments: key: string, value: string (JSON string), [with_valid_time: datetime (as RFC 3339 string), with_end_valid_time: datetime (as RFC 3339 string)]
 func Set(this js.Value, inputs []js.Value) interface{} {
 	err := set(inputs)
 	if err != nil {
@@ -224,7 +224,7 @@ func set(inputs []js.Value) error {
 }
 
 // Delete is the wasm adapter for DB.Delete
-// arguments: key: string, [with_valid_time: datetime (as RFC 3339 string), with_end_valid)time: datetime (as RFC 3339 string)]
+// arguments: key: string, [with_valid_time: datetime (as RFC 3339 string), with_end_valid_time: datetime (as RFC 3339 string)]
 func Delete(this js.Value, inputs []js.Value) interface{} {
 	err := delete(inputs)
 	if err != nil {
@@ -314,8 +314,34 @@ func history(inputs []js.Value) (interface{}, error) {
 }
 
 // SetNow is the wasm adapter for dbtest.TestClock.SetNow
+// arguments: now: datetime (as RFC 3339 string)
 func SetNow(this js.Value, inputs []js.Value) interface{} {
-	fmt.Println("unimplemented")
+	err := setNow(inputs)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
+	return nil
+}
+
+func setNow(inputs []js.Value) error {
+	var now time.Time
+	{
+		if len(inputs) < 1 {
+			return fmt.Errorf("now is required")
+		}
+		if inputs[0].Type() != js.TypeString {
+			return fmt.Errorf("now must be type string")
+		}
+		t, err := time.Parse(time.RFC3339, inputs[0].String())
+		if err != nil {
+			return fmt.Errorf("failed to parse now: %v\n", err)
+		}
+		now = t
+	}
+
+	if err := clock.SetNow(now); err != nil {
+		return fmt.Errorf("failed to set now: %v\n", err)
+	}
 	return nil
 }
 
