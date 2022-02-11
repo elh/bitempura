@@ -37,6 +37,10 @@ func init() {
 		fmt.Printf("ERROR: failed to pre-seed db: %v\n", err)
 		return
 	}
+	if err := db.Set("b", 2); err != nil {
+		fmt.Printf("ERROR: failed to pre-seed db: %v\n", err)
+		return
+	}
 
 	fmt.Println("bt db initialized.")
 }
@@ -103,9 +107,54 @@ func get(inputs []js.Value) (interface{}, error) {
 }
 
 // List is the wasm adapter for DB.List
+// arguments: [as_of_valid_time: datetime (as RFC 3339 string), as_of_transaction_time: datetime (as RFC 3339 string)]
 func List(this js.Value, inputs []js.Value) interface{} {
-	fmt.Println("unimplemented")
-	return nil
+	res, err := list(inputs)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
+	return res
+}
+
+func list(inputs []js.Value) (interface{}, error) {
+	var asOfValidTime, asOfTransactionTime *time.Time
+	if len(inputs) > 0 && inputs[0].Type() != js.TypeNull && inputs[0].Type() != js.TypeUndefined {
+		if inputs[0].Type() != js.TypeString {
+			return nil, fmt.Errorf("as_of_valid_time must be type string (or null or undefined)")
+		}
+		t, err := time.Parse(time.RFC3339, inputs[0].String())
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse as_of_valid_time: %v\n", err)
+		}
+		asOfValidTime = &t
+	}
+	if len(inputs) > 1 && inputs[1].Type() != js.TypeNull && inputs[1].Type() != js.TypeUndefined {
+		if inputs[1].Type() != js.TypeString {
+			fmt.Println("as_of_transaction_time must be type string (or null or undefined)")
+		}
+		t, err := time.Parse(time.RFC3339, inputs[1].String())
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse as_of_transaction_time: %v\n", err)
+		}
+		asOfTransactionTime = &t
+	}
+
+	var opts []bt.ReadOpt
+	if asOfValidTime != nil {
+		opts = append(opts, bt.AsOfValidTime(*asOfValidTime))
+	}
+	if asOfTransactionTime != nil {
+		opts = append(opts, bt.AsOfTransactionTime(*asOfTransactionTime))
+	}
+	got, err := db.List(opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list key: %v\n", err)
+	}
+	res, err := kvsToSlice(got)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert kvs: %v\n", err)
+	}
+	return res, nil
 }
 
 // Set is the wasm adapter for DB.Set
@@ -130,6 +179,18 @@ func History(this js.Value, inputs []js.Value) interface{} {
 func SetNow(this js.Value, inputs []js.Value) interface{} {
 	fmt.Println("unimplemented")
 	return nil
+}
+
+func kvsToSlice(kvs []*bt.VersionedKV) ([]interface{}, error) {
+	res := make([]interface{}, len(kvs))
+	for i, kv := range kvs {
+		m, err := kvToMap(kv)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = m
+	}
+	return res, nil
 }
 
 func kvToMap(kv *bt.VersionedKV) (map[string]interface{}, error) {
