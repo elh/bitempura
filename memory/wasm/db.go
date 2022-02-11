@@ -15,6 +15,7 @@ import (
 	"github.com/elh/bitempura/memory"
 )
 
+// the working model for the wasm file is that there is one global memory.DB
 var clock *dbtest.TestClock
 var db bitempura.DB
 
@@ -26,22 +27,12 @@ func init() {
 		fmt.Printf("ERROR: failed to init db: %v\n", err)
 		return
 	}
-	_ = db
 
-	// TODO: remove this pre-seeding for testing
-	if err := clock.SetNow(time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)); err != nil {
+	// initialize now for test clock
+	if err := clock.SetNow(time.Now().UTC()); err != nil {
 		fmt.Printf("ERROR: failed to set up clock: %v\n", err)
 		return
 	}
-	if err := db.Set("a", 1); err != nil {
-		fmt.Printf("ERROR: failed to pre-seed db: %v\n", err)
-		return
-	}
-	if err := db.Set("b", 2); err != nil {
-		fmt.Printf("ERROR: failed to pre-seed db: %v\n", err)
-		return
-	}
-
 	fmt.Println("bt db initialized.")
 }
 
@@ -184,7 +175,7 @@ func set(inputs []js.Value) error {
 			return fmt.Errorf("value is required")
 		}
 		if inputs[1].Type() != js.TypeString {
-			return fmt.Errorf("key must be type string")
+			return fmt.Errorf("value must be type string")
 		}
 		value = inputs[1].String()
 	}
