@@ -4,10 +4,13 @@
 package wasm
 
 import (
+	"encoding/json"
 	"fmt"
 	"syscall/js"
+	"time"
 
 	"github.com/elh/bitempura"
+	bt "github.com/elh/bitempura"
 	"github.com/elh/bitempura/dbtest"
 	"github.com/elh/bitempura/memory"
 )
@@ -20,17 +23,83 @@ func init() {
 	clock = &dbtest.TestClock{}
 	db, err = memory.NewDB(memory.WithClock(clock))
 	if err != nil {
-		fmt.Println("ERROR: failed to init db!")
+		fmt.Printf("ERROR: failed to init db: %v\n", err)
+		return
 	}
 	_ = db
 
-	fmt.Println("INFO: db initialized.")
+	// TODO: remove this pre-seeding for testing
+	if err := clock.SetNow(time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)); err != nil {
+		fmt.Printf("ERROR: failed to set up clock: %v\n", err)
+		return
+	}
+	if err := db.Set("a", 1); err != nil {
+		fmt.Printf("ERROR: failed to pre-seed db: %v\n", err)
+		return
+	}
+
+	fmt.Println("bt db initialized.")
 }
 
-// Get is the wasm adapter for DB.Get
+// Get is the wasm adapter for DB.Get.
+// arguments: key: string, [as_of_valid_time: datetime (as RFC 3339 string), as_of_transaction_time: datetime (as RFC 3339 string)]
 func Get(this js.Value, inputs []js.Value) interface{} {
-	fmt.Println("unimplemented")
-	return nil
+	res, err := get(inputs)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
+	return res
+}
+
+func get(inputs []js.Value) (interface{}, error) {
+	var key string
+	var asOfValidTime, asOfTransactionTime *time.Time
+	{
+		if len(inputs) < 1 {
+			return nil, fmt.Errorf("at least 1 argument required: key, [as_of_valid_time, as_of_transaction_time]")
+		}
+		if inputs[0].Type() != js.TypeString {
+			return nil, fmt.Errorf("key must be type string")
+		}
+		key = inputs[0].String()
+	}
+	if len(inputs) > 1 && inputs[1].Type() != js.TypeNull && inputs[1].Type() != js.TypeUndefined {
+		if inputs[1].Type() != js.TypeString {
+			return nil, fmt.Errorf("as_of_valid_time must be type string (or null or undefined)")
+		}
+		t, err := time.Parse(time.RFC3339, inputs[1].String())
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse as_of_valid_time: %v\n", err)
+		}
+		asOfValidTime = &t
+	}
+	if len(inputs) > 2 && inputs[2].Type() != js.TypeNull && inputs[2].Type() != js.TypeUndefined {
+		if inputs[2].Type() != js.TypeString {
+			fmt.Println("as_of_transaction_time must be type string (or null or undefined)")
+		}
+		t, err := time.Parse(time.RFC3339, inputs[2].String())
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse as_of_transaction_time: %v\n", err)
+		}
+		asOfTransactionTime = &t
+	}
+
+	var opts []bt.ReadOpt
+	if asOfValidTime != nil {
+		opts = append(opts, bt.AsOfValidTime(*asOfValidTime))
+	}
+	if asOfTransactionTime != nil {
+		opts = append(opts, bt.AsOfTransactionTime(*asOfTransactionTime))
+	}
+	got, err := db.Get(key, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get key: %v\n", err)
+	}
+	res, err := kvToMap(got)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert kv: %v\n", err)
+	}
+	return res, nil
 }
 
 // List is the wasm adapter for DB.List
@@ -61,4 +130,21 @@ func History(this js.Value, inputs []js.Value) interface{} {
 func SetNow(this js.Value, inputs []js.Value) interface{} {
 	fmt.Println("unimplemented")
 	return nil
+}
+
+func kvToMap(kv *bt.VersionedKV) (map[string]interface{}, error) {
+	j := toJSON(kv)
+	var result map[string]interface{}
+	if err := json.Unmarshal([]byte(j), &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal: %v", err)
+	}
+	return result, nil
+}
+
+func toJSON(v interface{}) string {
+	out, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return string(out)
 }
