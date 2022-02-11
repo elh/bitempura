@@ -17,12 +17,9 @@ jobs:
       with:
         go-version: 1.17
     - name: Build
-      # build wasm packages separately
-      run: |
-        go build `go list ./... | grep -v wasm`
-        GOOS=js GOARCH=wasm go build `go list ./... | grep wasm`
+      run: make build
     - name: Test
-      run: go test ./...
+      run: make test-check-output
     - name: Race Detector Test - memory # SQL test not passing
       run: go test github.com/elh/bitempura/memory -race
   golangci:
