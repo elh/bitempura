@@ -1,7 +1,11 @@
+//go:build js && wasm
+// +build js,wasm
+
 package wasm
 
 import (
 	"fmt"
+	"syscall/js"
 
 	"github.com/elh/bitempura"
 	"github.com/elh/bitempura/dbtest"
@@ -20,9 +24,41 @@ func init() {
 	}
 	_ = db
 
-	fmt.Println("INFO: db initialized!")
+	fmt.Println("INFO: db initialized.")
 }
 
-// TODO is just here to trigger the main import
-// TODO: remove this
-var TODO = "TODO: remove"
+// Get is the wasm adapter for DB.Get
+func Get(this js.Value, inputs []js.Value) interface{} {
+	fmt.Println("unimplemented")
+	return nil
+}
+
+// List is the wasm adapter for DB.List
+func List(this js.Value, inputs []js.Value) interface{} {
+	fmt.Println("unimplemented")
+	return nil
+}
+
+// Set is the wasm adapter for DB.Set
+func Set(this js.Value, inputs []js.Value) interface{} {
+	fmt.Println("unimplemented")
+	return nil
+}
+
+// Delete is the wasm adapter for DB.Delete
+func Delete(this js.Value, inputs []js.Value) interface{} {
+	fmt.Println("unimplemented")
+	return nil
+}
+
+// History is the wasm adapter for DB.History
+func History(this js.Value, inputs []js.Value) interface{} {
+	fmt.Println("unimplemented")
+	return nil
+}
+
+// SetNow is the wasm adapter for dbtest.TestClock.SetNow
+func SetNow(this js.Value, inputs []js.Value) interface{} {
+	fmt.Println("unimplemented")
+	return nil
+}

@@ -1,11 +1,23 @@
+//go:build js && wasm
+// +build js,wasm
+
 package main
 
-import "github.com/elh/bitempura/memory/wasm"
+import (
+	"syscall/js"
 
-var _ = wasm.TODO // just trigger the init
+	"github.com/elh/bitempura/memory/wasm"
+)
 
+// all functions are exports with the "bt_" prefix. the working model for the wasm file is that there is one global
+// memory.DB local in the JavaScript environment
 func main() {
 	c := make(chan struct{})
-	// TODO: register functions
+	js.Global().Set("bt_Get", js.FuncOf(wasm.Get))
+	js.Global().Set("bt_List", js.FuncOf(wasm.List))
+	js.Global().Set("bt_Set", js.FuncOf(wasm.Set))
+	js.Global().Set("bt_Delete", js.FuncOf(wasm.Delete))
+	js.Global().Set("bt_History", js.FuncOf(wasm.History))
+	js.Global().Set("bt_SetNow", js.FuncOf(wasm.SetNow))
 	<-c
 }
