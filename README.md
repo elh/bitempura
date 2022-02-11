@@ -7,9 +7,12 @@
 
 **Bitempura.DB is a simple, [bitemporal](https://en.wikipedia.org/wiki/Bitemporal_Modeling) key-value database.**
 
-Bitempura provides an in-memory, concurrency-safe [reference implementation](https://github.com/elh/bitempura/blob/main/memory/db.go). Users may leverage temporal visualization and debugging with [bitempura-viz 🔮](https://github.com/elh/bitempura-viz).
+Bitempura provides an in-memory, concurrency-safe [reference implementation](https://github.com/elh/bitempura/blob/main/memory/db.go).
+* Use a developer-friendly API that is as simple or complex as your use case. See "Design" section.
+* Visualize and debug the 2D valid time and transaction time history with [bitempura-viz 🔮](https://github.com/elh/bitempura-viz).
+* Run on the web with compilation to [WebAssembly 🧩](https://github.com/elh/bitempura/blob/main/memory/wasm).
 
-🛠️: An experimental SQL-backed, [SQL-querying implementation](https://github.com/elh/bitempura/blob/main/sql/db.go) is WIP.
+An experimental SQL-backed, [SQL-querying implementation](https://github.com/elh/bitempura/blob/main/sql/db.go) is WIP 🛠️.
 
 <br />
 
