@@ -15,8 +15,9 @@ import (
 	"github.com/elh/bitempura/memory"
 )
 
-var clock *dbtest.TestClock
 var db bitempura.DB
+var clock *dbtest.TestClock
+var onChangeFn *js.Value
 
 func init() {
 	var err error
@@ -154,6 +155,10 @@ func Set(this js.Value, inputs []js.Value) interface{} {
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
 	}
+
+	if onChangeFn != nil {
+		onChangeFn.Invoke()
+	}
 	return nil
 }
 
@@ -219,6 +224,10 @@ func Delete(this js.Value, inputs []js.Value) interface{} {
 	err := delete(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+	}
+
+	if onChangeFn != nil {
+		onChangeFn.Invoke()
 	}
 	return nil
 }
@@ -332,6 +341,30 @@ func setNow(inputs []js.Value) error {
 	if err := clock.SetNow(now); err != nil {
 		return fmt.Errorf("failed to set now: %v\n", err)
 	}
+	return nil
+}
+
+// OnChange allows the user to register a callback function to be called when the database changes.
+// arguments = fn: function (arity=0)
+func OnChange(this js.Value, inputs []js.Value) interface{} {
+	err := onChange(inputs)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
+	return nil
+}
+
+func onChange(inputs []js.Value) error {
+	{
+		if len(inputs) < 1 {
+			return fmt.Errorf("fn is required")
+		}
+		if inputs[0].Type() != js.TypeFunction {
+			return fmt.Errorf("fn must be type function")
+		}
+		onChangeFn = &inputs[0]
+	}
+
 	return nil
 }
 
