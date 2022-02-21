@@ -123,11 +123,36 @@ func (db *TableDB) Set(key string, value bt.Value, opts ...bt.WriteOpt) error {
 // Delete removes value (with optional start and end valid time).
 // WARNING: unimplemented
 func (db *TableDB) Delete(key string, opts ...bt.WriteOpt) error {
+	writeConfig, now, err := db.handleWriteOpts(opts)
+	if err != nil {
+		return err
+	}
+
 	// select out the conflicting records based on the write opt times. update them and add new ones as needed
 	if db.deletedAtColName == nil {
 		return errors.New("Delete without configured DeleteAt column is unimplemented") // TODO: support this
 	}
-	return errors.New("unimplemented")
+	if writeConfig.endValidTime != nil && writeConfig.endValidTime.Before(now) {
+		return errors.New("Delete in the past not supported") // TODO: support this
+	}
+
+	res, err := squirrel.Update(db.table).
+		Set(*db.deletedAtColName, now).
+		Where(squirrel.Eq{db.pkColumnName: key}).
+		RunWith(db.eq).
+		Exec()
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return bt.ErrNotFound // TODO: check before delete. cannot assume safe rollback.
+	}
+
+	return nil
 }
 
 // History returns versions by descending end transaction time, descending end valid time
@@ -194,6 +219,41 @@ func (db *TableDB) handleReadOpts(opts []bt.ReadOpt) *readConfig {
 	}
 
 	return config
+}
+
+type writeConfig struct {
+	validTime    time.Time
+	endValidTime *time.Time
+}
+
+func (db *TableDB) handleWriteOpts(opts []bt.WriteOpt) (config *writeConfig, now time.Time, err error) {
+	options := bt.ApplyWriteOpts(opts)
+
+	now = time.Now()
+	config = &writeConfig{
+		validTime:    now,
+		endValidTime: nil,
+	}
+	if options.ValidTime != nil {
+		config.validTime = *options.ValidTime
+	}
+	if options.EndValidTime != nil {
+		config.endValidTime = options.EndValidTime
+	}
+
+	// validate write option times. this is relevant for Delete even if Set is validated at resource level
+	if config.endValidTime != nil && !config.endValidTime.After(config.validTime) {
+		return nil, time.Time{}, errors.New("valid time start must be before end")
+	}
+	// disallow valid times being set in the future
+	if config.validTime.After(now) {
+		return nil, time.Time{}, errors.New("valid time start cannot be in the future")
+	}
+	if config.endValidTime != nil && config.endValidTime.After(now) {
+		return nil, time.Time{}, errors.New("valid time end cannot be in the future")
+	}
+
+	return config, now, nil
 }
 
 // ExecerQueryer can Exec or Query. Both sql.DB and sql.Tx satisfy this interface.

@@ -1,0 +1,50 @@
+{
+  "TestName": "TestDelete/existing_entries._multiple_valid_time_ranges_active:_set_overlaps_multiple_versions",
+  "Passed": false,
+  "Histories": {
+    "A": [
+      {
+        "Key": "A",
+        "Value": {
+          "balance": 100,
+          "deleted_at": null,
+          "is_active": true,
+          "type": "checking",
+          "updated_at": "2021-01-02T00:00:00Z"
+        },
+        "TxTimeStart": "2022-01-03T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2022-01-03T00:00:00Z",
+        "ValidTimeEnd": null
+      },
+      {
+        "Key": "A",
+        "Value": {
+          "balance": 0,
+          "deleted_at": null,
+          "is_active": false,
+          "type": "checking",
+          "updated_at": "2021-01-01T00:00:00Z"
+        },
+        "TxTimeStart": "2022-01-03T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": "2022-01-03T00:00:00Z"
+      },
+      {
+        "Key": "A",
+        "Value": {
+          "balance": 0,
+          "deleted_at": null,
+          "is_active": false,
+          "type": "checking",
+          "updated_at": "2021-01-01T00:00:00Z"
+        },
+        "TxTimeStart": "2022-01-01T00:00:00Z",
+        "TxTimeEnd": "2022-01-03T00:00:00Z",
+        "ValidTimeStart": "2022-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ]
+  }
+}
