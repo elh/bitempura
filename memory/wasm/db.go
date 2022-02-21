@@ -25,6 +25,7 @@ func Init(this js.Value, inputs []js.Value) interface{} {
 	err := initDB(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+		return nil
 	}
 	return nil
 }
@@ -66,6 +67,7 @@ func Get(this js.Value, inputs []js.Value) interface{} {
 	res, err := get(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+		return nil
 	}
 	return res
 }
@@ -131,6 +133,7 @@ func List(this js.Value, inputs []js.Value) interface{} {
 	res, err := list(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+		return nil
 	}
 	return res
 }
@@ -183,55 +186,56 @@ func Set(this js.Value, inputs []js.Value) interface{} {
 		fmt.Println("ERROR: db is not initialized. call bt_Init")
 		return nil
 	}
-	err := set(inputs)
+	key, err := set(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+		return nil
 	}
 
 	if onChangeFn != nil {
-		onChangeFn.Invoke()
+		onChangeFn.Invoke(key)
 	}
 	return nil
 }
 
-func set(inputs []js.Value) error {
-	var key, value string
+func set(inputs []js.Value) (key string, err error) {
+	var value string
 	var withValidTime, withEndValidTime *time.Time
 	{
 		if len(inputs) < 1 {
-			return fmt.Errorf("key is required")
+			return "", fmt.Errorf("key is required")
 		}
 		if inputs[0].Type() != js.TypeString {
-			return fmt.Errorf("key must be type string")
+			return "", fmt.Errorf("key must be type string")
 		}
 		key = inputs[0].String()
 	}
 	{
 		if len(inputs) < 2 {
-			return fmt.Errorf("value is required")
+			return "", fmt.Errorf("value is required")
 		}
 		if inputs[1].Type() != js.TypeString {
-			return fmt.Errorf("value must be type string")
+			return "", fmt.Errorf("value must be type string")
 		}
 		value = inputs[1].String()
 	}
 	if len(inputs) > 2 && inputs[2].Type() != js.TypeNull && inputs[2].Type() != js.TypeUndefined {
 		if inputs[2].Type() != js.TypeString {
-			return fmt.Errorf("with_valid_time must be type string (or null or undefined)")
+			return "", fmt.Errorf("with_valid_time must be type string (or null or undefined)")
 		}
 		t, err := time.Parse(time.RFC3339, inputs[2].String())
 		if err != nil {
-			return fmt.Errorf("failed to parse with_valid_time: %v\n", err)
+			return "", fmt.Errorf("failed to parse with_valid_time: %v\n", err)
 		}
 		withValidTime = &t
 	}
 	if len(inputs) > 3 && inputs[3].Type() != js.TypeNull && inputs[3].Type() != js.TypeUndefined {
 		if inputs[3].Type() != js.TypeString {
-			return fmt.Errorf("with_end_valid must be type string (or null or undefined)")
+			return "", fmt.Errorf("with_end_valid must be type string (or null or undefined)")
 		}
 		t, err := time.Parse(time.RFC3339, inputs[3].String())
 		if err != nil {
-			return fmt.Errorf("failed to parse with_end_valid: %v\n", err)
+			return "", fmt.Errorf("failed to parse with_end_valid: %v\n", err)
 		}
 		withEndValidTime = &t
 	}
@@ -243,11 +247,11 @@ func set(inputs []js.Value) error {
 	if withEndValidTime != nil {
 		opts = append(opts, bt.WithEndValidTime(*withEndValidTime))
 	}
-	err := db.Set(key, value, opts...)
+	err = db.Set(key, value, opts...)
 	if err != nil {
-		return fmt.Errorf("failed to set: %v\n", err)
+		return "", fmt.Errorf("failed to set: %v\n", err)
 	}
-	return nil
+	return key, nil
 }
 
 // Delete is the wasm adapter for DB.Delete.
@@ -257,46 +261,46 @@ func Delete(this js.Value, inputs []js.Value) interface{} {
 		fmt.Println("ERROR: db is not initialized. call bt_Init")
 		return nil
 	}
-	err := delete(inputs)
+	key, err := delete(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+		return nil
 	}
 
 	if onChangeFn != nil {
-		onChangeFn.Invoke()
+		onChangeFn.Invoke(key)
 	}
 	return nil
 }
 
-func delete(inputs []js.Value) error {
-	var key string
+func delete(inputs []js.Value) (key string, err error) {
 	var withValidTime, withEndValidTime *time.Time
 	{
 		if len(inputs) < 1 {
-			return fmt.Errorf("key is required")
+			return "", fmt.Errorf("key is required")
 		}
 		if inputs[0].Type() != js.TypeString {
-			return fmt.Errorf("key must be type string")
+			return "", fmt.Errorf("key must be type string")
 		}
 		key = inputs[0].String()
 	}
 	if len(inputs) > 1 && inputs[1].Type() != js.TypeNull && inputs[1].Type() != js.TypeUndefined {
 		if inputs[1].Type() != js.TypeString {
-			return fmt.Errorf("with_valid_time must be type string (or null or undefined)")
+			return "", fmt.Errorf("with_valid_time must be type string (or null or undefined)")
 		}
 		t, err := time.Parse(time.RFC3339, inputs[1].String())
 		if err != nil {
-			return fmt.Errorf("failed to parse with_valid_time: %v\n", err)
+			return "", fmt.Errorf("failed to parse with_valid_time: %v\n", err)
 		}
 		withValidTime = &t
 	}
 	if len(inputs) > 2 && inputs[2].Type() != js.TypeNull && inputs[2].Type() != js.TypeUndefined {
 		if inputs[2].Type() != js.TypeString {
-			return fmt.Errorf("with_end_valid must be type string (or null or undefined)")
+			return "", fmt.Errorf("with_end_valid must be type string (or null or undefined)")
 		}
 		t, err := time.Parse(time.RFC3339, inputs[2].String())
 		if err != nil {
-			return fmt.Errorf("failed to parse with_end_valid: %v\n", err)
+			return "", fmt.Errorf("failed to parse with_end_valid: %v\n", err)
 		}
 		withEndValidTime = &t
 	}
@@ -308,11 +312,11 @@ func delete(inputs []js.Value) error {
 	if withEndValidTime != nil {
 		opts = append(opts, bt.WithEndValidTime(*withEndValidTime))
 	}
-	err := db.Delete(key, opts...)
+	err = db.Delete(key, opts...)
 	if err != nil {
-		return fmt.Errorf("failed to delete: %v\n", err)
+		return "", fmt.Errorf("failed to delete: %v\n", err)
 	}
-	return nil
+	return key, nil
 }
 
 // History is the wasm adapter for DB.History.
@@ -325,6 +329,7 @@ func History(this js.Value, inputs []js.Value) interface{} {
 	res, err := history(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+		return nil
 	}
 	return res
 }
@@ -352,12 +357,14 @@ func history(inputs []js.Value) (interface{}, error) {
 	return res, nil
 }
 
-// OnChange allows the user to register a callback function to be called when the database changes.
-// arguments = fn: function (arity=0)
+// OnChange allows the user to register a callback function to be invoked when the database changes. The callback
+// function is invoked with the key that was just updated.
+// arguments = fn: unary function (arguments = key: string)
 func OnChange(this js.Value, inputs []js.Value) interface{} {
 	err := onChange(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+		return nil
 	}
 	return nil
 }
@@ -386,6 +393,7 @@ func SetNow(this js.Value, inputs []js.Value) interface{} {
 	err := setNow(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+		return nil
 	}
 	return nil
 }
