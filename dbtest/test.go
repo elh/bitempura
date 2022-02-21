@@ -936,8 +936,9 @@ func TestSet(t *testing.T, dbFn func(kvs []*VersionedKV, clock Clock) (DB, error
 				for _, findCheck := range tC.findChecks {
 					ret, err := db.Get(tC.key, findCheck.readOpts...)
 					if findCheck.expectErrNotFound {
+						require.NotNil(t, err)
 						require.ErrorIs(t, err, ErrNotFound)
-						return
+						continue
 					}
 					require.Nil(t, err)
 					assert.Equal(t, findCheck.expectValue, ret)
@@ -1275,8 +1276,9 @@ func TestDelete(t *testing.T, oldValue, newValue Value, dbFn func(kvs []*Version
 				for _, findCheck := range tC.findChecks {
 					ret, err := db.Get(tC.key, findCheck.readOpts...)
 					if findCheck.expectErrNotFound {
+						require.NotNil(t, err)
 						require.ErrorIs(t, err, ErrNotFound)
-						return
+						continue
 					}
 					require.Nil(t, err)
 					assert.Equal(t, findCheck.expectValue, ret)
