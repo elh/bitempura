@@ -23,8 +23,9 @@ Provides compilation of `memory.DB` to WebAssembly.
 // History is the wasm adapter for DB.History.
 // arguments = key: string
 
-// OnChange allows the user to register a callback function to be called when the database changes.
-// arguments = fn: function (arity=0)
+// OnChange allows the user to register a callback function to be invoked when the database changes. The callback
+// function is invoked with the key that was just updated.
+// arguments = fn: unary function (arguments = key: string)
 
 // SetNow is the wasm adapter for dbtest.TestClock.SetNow. SetNow can only be called if DB was bt.Init-ed with a clock.
 // arguments = now: string (RFC 3339 datetime)
