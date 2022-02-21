@@ -22,7 +22,7 @@
 - [x] Exported ReadOpt and WriteOpt handling. Separate provided inputs from resulting options for logging + SQL queries.
 - [ ] ReadOpt's for History
 - [ ] bitempur-ize existing SQL table
-- [ ] Visualizations. Interactive?
+- [x] Visualizations. Interactive? see bitempura-viz
 - [ ] Performance/memory usage benchmarking
     - [ ] Profiling
 

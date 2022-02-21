@@ -15,29 +15,54 @@ import (
 	"github.com/elh/bitempura/memory"
 )
 
-var clock *dbtest.TestClock
 var db bitempura.DB
+var clock *dbtest.TestClock
+var onChangeFn *js.Value
 
-func init() {
-	var err error
-	clock = &dbtest.TestClock{}
-	db, err = memory.NewDB(memory.WithClock(clock))
+// Init initializes the global Wasm DB. bt_Init must be called before usage.
+// arguments = [withClock: bool]
+func Init(this js.Value, inputs []js.Value) interface{} {
+	err := initDB(inputs)
 	if err != nil {
-		fmt.Printf("ERROR: failed to init db: %v\n", err)
-		return
+		fmt.Printf("ERROR: %v\n", err)
+	}
+	return nil
+}
+
+func initDB(inputs []js.Value) error {
+	var withClock bool
+	if len(inputs) > 0 {
+		if inputs[0].Type() != js.TypeBoolean {
+			return fmt.Errorf("withClock must be type bool")
+		}
+		withClock = inputs[0].Bool()
 	}
 
-	// initialize now for test clock
-	if err := clock.SetNow(time.Now().UTC()); err != nil {
-		fmt.Printf("ERROR: failed to set up clock: %v\n", err)
-		return
+	var opts []memory.DBOpt
+	if withClock {
+		clock = &dbtest.TestClock{}
+		// initialize now for manually controlled clock
+		if err := clock.SetNow(time.Now().UTC()); err != nil {
+			return err
+		}
+		opts = append(opts, memory.WithClock(clock))
 	}
-	fmt.Println("bt db initialized.")
+
+	var err error
+	db, err = memory.NewDB(opts...)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Get is the wasm adapter for DB.Get.
 // arguments = key: string, [as_of_valid_time: string (RFC 3339 datetime), as_of_transaction_time: string (RFC 3339 datetime)]
 func Get(this js.Value, inputs []js.Value) interface{} {
+	if db == nil {
+		fmt.Println("ERROR: db is not initialized. call bt_Init")
+		return nil
+	}
 	res, err := get(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
@@ -99,6 +124,10 @@ func get(inputs []js.Value) (interface{}, error) {
 // List is the wasm adapter for DB.List.
 // arguments = [as_of_valid_time: string (RFC 3339 datetime), as_of_transaction_time: string (RFC 3339 datetime)]
 func List(this js.Value, inputs []js.Value) interface{} {
+	if db == nil {
+		fmt.Println("ERROR: db is not initialized. call bt_Init")
+		return nil
+	}
 	res, err := list(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
@@ -150,9 +179,17 @@ func list(inputs []js.Value) (interface{}, error) {
 // Set is the wasm adapter for DB.Set.
 // arguments = key: string, value: string (JSON string), [with_valid_time: string (RFC 3339 datetime), with_end_valid_time: string (RFC 3339 datetime)]
 func Set(this js.Value, inputs []js.Value) interface{} {
+	if db == nil {
+		fmt.Println("ERROR: db is not initialized. call bt_Init")
+		return nil
+	}
 	err := set(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+	}
+
+	if onChangeFn != nil {
+		onChangeFn.Invoke()
 	}
 	return nil
 }
@@ -216,9 +253,17 @@ func set(inputs []js.Value) error {
 // Delete is the wasm adapter for DB.Delete.
 // arguments = key: string, [with_valid_time: string (RFC 3339 datetime), with_end_valid_time: string (RFC 3339 datetime)]
 func Delete(this js.Value, inputs []js.Value) interface{} {
+	if db == nil {
+		fmt.Println("ERROR: db is not initialized. call bt_Init")
+		return nil
+	}
 	err := delete(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+	}
+
+	if onChangeFn != nil {
+		onChangeFn.Invoke()
 	}
 	return nil
 }
@@ -273,6 +318,10 @@ func delete(inputs []js.Value) error {
 // History is the wasm adapter for DB.History.
 // arguments = key: string
 func History(this js.Value, inputs []js.Value) interface{} {
+	if db == nil {
+		fmt.Println("ERROR: db is not initialized. call bt_Init")
+		return nil
+	}
 	res, err := history(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
@@ -303,9 +352,37 @@ func history(inputs []js.Value) (interface{}, error) {
 	return res, nil
 }
 
-// SetNow is the wasm adapter for dbtest.TestClock.SetNow.
+// OnChange allows the user to register a callback function to be called when the database changes.
+// arguments = fn: function (arity=0)
+func OnChange(this js.Value, inputs []js.Value) interface{} {
+	err := onChange(inputs)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
+	return nil
+}
+
+func onChange(inputs []js.Value) error {
+	{
+		if len(inputs) < 1 {
+			return fmt.Errorf("fn is required")
+		}
+		if inputs[0].Type() != js.TypeFunction {
+			return fmt.Errorf("fn must be type function")
+		}
+		onChangeFn = &inputs[0]
+	}
+
+	return nil
+}
+
+// SetNow is the wasm adapter for dbtest.TestClock.SetNow. SetNow can only be called if DB was Init-ed with a clock.
 // arguments = now: string (RFC 3339 datetime)
 func SetNow(this js.Value, inputs []js.Value) interface{} {
+	if clock == nil {
+		fmt.Println("ERROR: clock is not initialized. bt_Init must be called with withClock=true")
+		return nil
+	}
 	err := setNow(inputs)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
