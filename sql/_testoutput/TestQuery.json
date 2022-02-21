@@ -1,0 +1,152 @@
+{
+  "TestName": "TestQuery",
+  "Passed": true,
+  "Histories": {
+    "alice/balance": [
+      {
+        "Key": "alice/balance",
+        "Value": {
+          "balance": 200,
+          "deleted_at": null,
+          "is_active": true,
+          "type": "checking",
+          "updated_at": "2021-01-03T00:00:00Z"
+        },
+        "TxTimeStart": "2021-01-03T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2021-01-03T00:00:00Z",
+        "ValidTimeEnd": null
+      },
+      {
+        "Key": "alice/balance",
+        "Value": {
+          "balance": 100,
+          "deleted_at": null,
+          "is_active": true,
+          "type": "checking",
+          "updated_at": "2021-01-03T00:00:00Z"
+        },
+        "TxTimeStart": "2021-01-03T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2021-01-01T00:00:00Z",
+        "ValidTimeEnd": "2021-01-03T00:00:00Z"
+      },
+      {
+        "Key": "alice/balance",
+        "Value": {
+          "balance": 100,
+          "deleted_at": null,
+          "is_active": true,
+          "type": "checking",
+          "updated_at": "2021-01-01T00:00:00Z"
+        },
+        "TxTimeStart": "2021-01-01T00:00:00Z",
+        "TxTimeEnd": "2021-01-03T00:00:00Z",
+        "ValidTimeStart": "2021-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ],
+    "bob/balance": [
+      {
+        "Key": "bob/balance",
+        "Value": {
+          "balance": 300,
+          "deleted_at": null,
+          "is_active": true,
+          "type": "savings",
+          "updated_at": "2021-01-02T00:00:00Z"
+        },
+        "TxTimeStart": "2021-01-02T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2021-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      },
+      {
+        "Key": "bob/balance",
+        "Value": {
+          "balance": 100,
+          "deleted_at": null,
+          "is_active": true,
+          "type": "savings",
+          "updated_at": "2021-01-01T00:00:00Z"
+        },
+        "TxTimeStart": "2021-01-01T00:00:00Z",
+        "TxTimeEnd": "2021-01-02T00:00:00Z",
+        "ValidTimeStart": "2021-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ],
+    "carol/balance": [
+      {
+        "Key": "carol/balance",
+        "Value": {
+          "balance": 100,
+          "deleted_at": null,
+          "is_active": true,
+          "type": "checking",
+          "updated_at": "2021-01-03T00:00:00Z"
+        },
+        "TxTimeStart": "2021-01-03T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2021-01-03T00:00:00Z",
+        "ValidTimeEnd": null
+      },
+      {
+        "Key": "carol/balance",
+        "Value": {
+          "balance": 10,
+          "deleted_at": null,
+          "is_active": true,
+          "type": "checking",
+          "updated_at": "2021-01-03T00:00:00Z"
+        },
+        "TxTimeStart": "2021-01-03T00:00:00Z",
+        "TxTimeEnd": null,
+        "ValidTimeStart": "2021-01-01T00:00:00Z",
+        "ValidTimeEnd": "2021-01-03T00:00:00Z"
+      },
+      {
+        "Key": "carol/balance",
+        "Value": {
+          "balance": 100,
+          "deleted_at": null,
+          "is_active": true,
+          "type": "checking",
+          "updated_at": "2021-01-02T00:00:00Z"
+        },
+        "TxTimeStart": "2021-01-02T00:00:00Z",
+        "TxTimeEnd": "2021-01-03T00:00:00Z",
+        "ValidTimeStart": "2021-01-02T00:00:00Z",
+        "ValidTimeEnd": null
+      },
+      {
+        "Key": "carol/balance",
+        "Value": {
+          "balance": 0,
+          "deleted_at": null,
+          "is_active": false,
+          "type": "checking",
+          "updated_at": "2021-01-02T00:00:00Z"
+        },
+        "TxTimeStart": "2021-01-02T00:00:00Z",
+        "TxTimeEnd": "2021-01-03T00:00:00Z",
+        "ValidTimeStart": "2021-01-01T00:00:00Z",
+        "ValidTimeEnd": "2021-01-02T00:00:00Z"
+      },
+      {
+        "Key": "carol/balance",
+        "Value": {
+          "balance": 0,
+          "deleted_at": null,
+          "is_active": false,
+          "type": "checking",
+          "updated_at": "2021-01-01T00:00:00Z"
+        },
+        "TxTimeStart": "2021-01-01T00:00:00Z",
+        "TxTimeEnd": "2021-01-02T00:00:00Z",
+        "ValidTimeStart": "2021-01-01T00:00:00Z",
+        "ValidTimeEnd": null
+      }
+    ]
+  }
+}

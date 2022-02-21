@@ -130,6 +130,7 @@ func TestQuery(t *testing.T) {
 
 	db, err := NewTableDB(sqlDB, "balances", "id", toStringPtr("updated_at"), toStringPtr("deleted_at"))
 	require.Nil(t, err)
+	defer dbtest.WriteOutputHistory(t, db, []string{"alice/balance", "bob/balance", "carol/balance"}, t.Name())
 
 	testCases := []struct {
 		desc    string
