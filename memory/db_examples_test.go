@@ -28,9 +28,9 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	keys := []string{"p1", "p2", "p3", "p4", "p5", "p6", "p7"}
 	// TODO: render as markdown so we can have links and code blocks?
 	defer dbtest.WriteOutputHistory(t, db, keys, t.Name(), strings.TrimSpace(`
-This is a recreation of the example from the XTDB documentation at https://docs.xtdb.com/concepts/bitemporality/.
+This is a recreation of the example from the [XTDB docs](https://docs.xtdb.com/concepts/bitemporality/).
 
-It doesn't display as well because this visualization is oriented around single objects at the moment. See the Robinhood example for a more thorough demonstration.
+It doesn't display as well because this visualization is oriented around single objects at the moment. See the [Robinhood example](/tests/TestRobinhoodExample) for a more thorough demonstration.
 `))
 
 	type Doc map[string]interface{}
@@ -317,10 +317,55 @@ func TestRobinhoodExample(t *testing.T) {
 	db, err := memory.NewDB(memory.WithClock(clock))
 	require.Nil(t, err)
 	defer dbtest.WriteOutputHistory(t, db, []string{"user-1"}, t.Name(), strings.TrimSpace(`
-This is a recreation of the example given in a Robinhood blog post.
+This is a recreation of the example in a Robinhood blog post: [Tracking Temporal Data at Robinhood](https://medium.com/robinhood-engineering/tracking-temporal-data-at-robinhood-b62291644a31).
 
-See https://medium.com/robinhood-engineering/tracking-temporal-data-at-robinhood-b62291644a31
-`))
+`+"```"+`
+// Say you deposit $100 in your account on 3/14.
+mar14 := mustParseTime(shortForm, "2021-03-14")
+require.Nil(t, clock.SetNow(mar14))
+require.Nil(t, db.Set("user-1", Balance{
+	"cash-balance": 100,
+	"description":  "Deposit", // description of last event??
+}))
+
+// On 3/20, you purchase 1 share of ABC stock at $25.
+mar20 := mustParseTime(shortForm, "2021-03-20")
+require.Nil(t, clock.SetNow(mar20))
+require.Nil(t, db.Set("user-1", Balance{
+	"cash-balance": 75,
+	"description":  "Stock Purchase",
+}))
+
+// On 3/21, Robinhood received a price improvement, indicating the execution for your 1 share of ABC was
+// actually $10.
+mar21 := mustParseTime(shortForm, "2021-03-21")
+require.Nil(t, clock.SetNow(mar21))
+require.Nil(t, db.Set("user-1", Balance{
+	"cash-balance": 90,
+	"description":  "Price Improvement",
+}, WithValidTime(mar20)))
+`+"```"+`
+Let's query our bitemporal history. Hover over the diagram to see changes over valid and transaction time.
+`+"```"+`
+// Now let's check the price at interesting points. See the diagram below
+mar13 := mustParseTime(shortForm, "2021-03-13") // before any VT, TT
+// VT=now, TT=now. as of now
+assert.Equal(t, 90, findBalance())
+// VT=now, TT=3/20. before price correction
+assert.Equal(t, 75, findBalance(AsOfTransactionTime(mar20)))
+// VT=now, TT=3/14. before stock purchase
+assert.Equal(t, 100, findBalance(AsOfTransactionTime(mar14)))
+// VT=now, TT=3/13. before any record
+expectErrGetBalance(AsOfTransactionTime(mar13))
+// VT=3/14, TT=now. 3/14 balance as of now
+assert.Equal(t, 100, findBalance(AsOfValidTime(mar14)))
+// VT=3/14, TT=3/20. 3/14 balance before price correction
+assert.Equal(t, 100, findBalance(AsOfTransactionTime(mar20), AsOfValidTime(mar14)))
+// VT=3/14, TT=3/14. 3/14 balance before stock purchase
+assert.Equal(t, 100, findBalance(AsOfTransactionTime(mar14), AsOfValidTime(mar14)))
+// VT=3/14, TT=3/13. 3/14 balance before any record
+expectErrGetBalance(AsOfTransactionTime(mar13), AsOfValidTime(mar14))
+`+"```"))
 
 	type Balance map[string]interface{}
 
@@ -345,8 +390,7 @@ See https://medium.com/robinhood-engineering/tracking-temporal-data-at-robinhood
 	require.Nil(t, db.Set("user-1", Balance{
 		"cash-balance": 90,
 		"description":  "Price Improvement",
-	},
-		WithValidTime(mar20)))
+	}, WithValidTime(mar20)))
 
 	// compacting...
 	findBalance := func(opts ...ReadOpt) interface{} {
@@ -359,7 +403,7 @@ See https://medium.com/robinhood-engineering/tracking-temporal-data-at-robinhood
 		require.NotNil(t, err)
 	}
 
-	// elh: now let's check the price at interesting points. see their diagram
+	// Now let's check the price at interesting points. See the diagram below
 	mar13 := mustParseTime(shortForm, "2021-03-13") // before any VT, TT
 	// VT=now, TT=now. as of now
 	assert.Equal(t, 90, findBalance())

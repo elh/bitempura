@@ -1655,7 +1655,7 @@ type TestOutput struct {
 	TestName    string
 	Passed      bool                      // true is test passed
 	Histories   map[string][]*VersionedKV // key -> history
-	Description string                    // optional description
+	Description string                    // optional description. Markdown is supported.
 }
 
 // WriteOutputHistory writes to a file the final "history" for specified keys at the end of a test. This is used for
