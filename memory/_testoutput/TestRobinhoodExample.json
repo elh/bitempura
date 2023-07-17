@@ -48,5 +48,6 @@
         "ValidTimeEnd": null
       }
     ]
-  }
+  },
+  "Description": "This is a recreation of the example given in a Robinhood blog post.\n\nSee https://medium.com/robinhood-engineering/tracking-temporal-data-at-robinhood-b62291644a31"
 }

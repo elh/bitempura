@@ -2,6 +2,7 @@ package memory_test
 
 import (
 	"sort"
+	"strings"
 	"testing"
 
 	. "github.com/elh/bitempura"
@@ -13,7 +14,7 @@ import (
 
 // Case Study Tests
 // XTDB: see https://docs.xtdb.com/concepts/bitemporality/
-// Robinhood: see https://robinhood.engineering/tracking-temporal-data-at-robinhood-b62291644a31
+// Robinhood: see https://medium.com/robinhood-engineering/tracking-temporal-data-at-robinhood-b62291644a31
 
 // XTDB Bitemporality > Example Queries > Crime Investigations
 // see https://docs.xtdb.com/concepts/bitemporality/
@@ -25,7 +26,12 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	db, err := memory.NewDB(memory.WithClock(clock))
 	require.Nil(t, err)
 	keys := []string{"p1", "p2", "p3", "p4", "p5", "p6", "p7"}
-	defer dbtest.WriteOutputHistory(t, db, keys, t.Name())
+	// TODO: render as markdown so we can have links and code blocks?
+	defer dbtest.WriteOutputHistory(t, db, keys, t.Name(), strings.TrimSpace(`
+This is a recreation of the example from the XTDB documentation at https://docs.xtdb.com/concepts/bitemporality/.
+
+It doesn't display as well because this visualization is oriented around single objects at the moment. See the Robinhood example for a more thorough demonstration.
+`))
 
 	type Doc map[string]interface{}
 
@@ -304,13 +310,17 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 }
 
 // Robinhood Eng blog > Tracking Temporal Data at Robinhood
-// see https://robinhood.engineering/tracking-temporal-data-at-robinhood-b62291644a31
+// see https://medium.com/robinhood-engineering/tracking-temporal-data-at-robinhood-b62291644a31
 // > At Robinhood, accounting is a central part of our business...
 func TestRobinhoodExample(t *testing.T) {
 	clock := &dbtest.TestClock{}
 	db, err := memory.NewDB(memory.WithClock(clock))
 	require.Nil(t, err)
-	defer dbtest.WriteOutputHistory(t, db, []string{"user-1"}, t.Name())
+	defer dbtest.WriteOutputHistory(t, db, []string{"user-1"}, t.Name(), strings.TrimSpace(`
+This is a recreation of the example given in a Robinhood blog post.
+
+See https://medium.com/robinhood-engineering/tracking-temporal-data-at-robinhood-b62291644a31
+`))
 
 	type Balance map[string]interface{}
 
