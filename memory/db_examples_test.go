@@ -30,8 +30,7 @@ func TestTXDBCrimeInvestigationExample(t *testing.T) {
 	defer dbtest.WriteOutputHistory(t, db, keys, t.Name(), strings.TrimSpace(`
 This is a recreation of the example from the [XTDB docs](https://docs.xtdb.com/concepts/bitemporality/).
 
-It doesn't display as well because this visualization is oriented around single objects at the moment. See the [Robinhood example](/tests/TestRobinhoodExample) for a more thorough demonstration.
-`))
+It doesn't display as well because this visualization is oriented around single objects at the moment. See `+"`TestRobinhoodExample`"+" for a more thorough demonstration."))
 
 	type Doc map[string]interface{}
 
