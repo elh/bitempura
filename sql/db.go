@@ -13,7 +13,7 @@ import (
 var _ DB = (*TableDB)(nil)
 
 // DB is a SQL-backed, SQL-queryable, bitemporal database.
-// WARNING: WIP. this implementation is experimental.
+// WARNING: WIP. this implementation is experimental and abandoned.
 type DB interface {
 	bt.DB
 	// Select executes a SQL query (as of optional valid and transaction times).
@@ -26,7 +26,7 @@ func StateTableName(tableName string) string {
 }
 
 // NewTableDB constructs a SQL-backed, SQL-queryable, bitemporal database connected to a specific underlying SQL table.
-// WARNING: WIP. this implementation is experimental.
+// WARNING: WIP. this implementation is experimental and abandoned.
 func NewTableDB(eq ExecerQueryer, table string, pkColumnName string, updatedAtColName,
 	deletedAtColName *string) (DB, error) {
 	// TODO: convert UpdateAt and DeletedAt columns to options
