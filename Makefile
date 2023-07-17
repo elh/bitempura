@@ -20,9 +20,7 @@ test-check-output:
 	git diff --exit-code
 
 # lint
-# run golint because I like the exported comment warnings. It does not fail the run.
 lint:
-	golint ./...
 	golangci-lint run
 
 ######################################################### wasm #########################################################
