@@ -317,7 +317,7 @@ func TestRobinhoodExample(t *testing.T) {
 	db, err := memory.NewDB(memory.WithClock(clock))
 	require.Nil(t, err)
 	defer dbtest.WriteOutputHistory(t, db, []string{"user-1"}, t.Name(), strings.TrimSpace(`
-This is a recreation of the example in a Robinhood blog post: [Tracking Temporal Data at Robinhood](https://medium.com/robinhood-engineering/tracking-temporal-data-at-robinhood-b62291644a31).
+This is a recreation of the example in a Robinhood blog post: [Tracking Temporal Data at Robinhood](https://medium.com/robinhood-engineering/tracking-temporal-data-at-robinhood-b62291644a31). ([code↗](https://github.com/elh/bitempura/blob/main/memory/db_examples_test.go))
 
 `+"```"+`
 // Say you deposit $100 in your account on 3/14.
