@@ -3,7 +3,8 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/elh/bitempura.svg)](https://pkg.go.dev/github.com/elh/bitempura)
 [![Build Status](https://github.com/elh/bitempura/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/elh/bitempura/actions/workflows/go.yml?query=branch%3Amain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/elh/bitempura)](https://goreportcard.com/report/github.com/elh/bitempura)
-[![Go Non-Test Lines Of Code](https://tokei.rs/b1/github/elh/bitempura?category=code)](https://github.com/elh/bitempura/blob/main/.tokeignore) <sup><sup>*non-test</sup></sup>
+<!-- This is often broken :/ -->
+<!-- [![Go Non-Test Lines Of Code](https://tokei.rs/b1/github/elh/bitempura?category=code)](https://github.com/elh/bitempura/blob/main/.tokeignore) <sup><sup>*non-test</sup></sup> -->
 
 **Bitempura.DB is a simple, [bitemporal](https://en.wikipedia.org/wiki/Bitemporal_Modeling) key-value database.**
 
@@ -12,7 +13,13 @@ Bitempura provides an in-memory, concurrency-safe [reference implementation](htt
 * Visualize and debug the 2D valid time and transaction time history with [bitempura-viz 🔮](https://github.com/elh/bitempura-viz).
 * Run on the web with compilation to [WebAssembly 🧩](https://github.com/elh/bitempura/blob/main/memory/wasm).
 
-An experimental, [SQL-backed, SQL-querying implementation](https://github.com/elh/bitempura/blob/main/sql/db.go) ~is WIP~ was promptly abandoned. Check out XTDB.
+An experimental, [SQL-querying implementation](https://github.com/elh/bitempura/blob/main/sql/db.go) was promptly abandoned. Check out XTDB :)
+
+<p align="center">
+	<a href="https://github.com/elh/bitempura-viz">
+		<img width="90%" alt="bitempura" src="https://user-images.githubusercontent.com/1035393/154894531-396b2ec4-0a4c-474f-bb11-73b5cc456eb2.gif">
+	</a>
+</p>
 
 <br />
 
